@@ -1,4 +1,8 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/emulator.dir/src/cpu.cpp.o"
+  "CMakeFiles/emulator.dir/src/cpu.cpp.o.d"
+  "CMakeFiles/emulator.dir/src/emulator.cpp.o"
+  "CMakeFiles/emulator.dir/src/emulator.cpp.o.d"
   "CMakeFiles/emulator.dir/src/main.cpp.o"
   "CMakeFiles/emulator.dir/src/main.cpp.o.d"
   "emulator"

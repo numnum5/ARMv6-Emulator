@@ -129,6 +129,54 @@ emulator/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/build
 .PHONY : emulator/fast
 
+src/cpu.o: src/cpu.cpp.o
+.PHONY : src/cpu.o
+
+# target to build an object file
+src/cpu.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/cpu.cpp.o
+.PHONY : src/cpu.cpp.o
+
+src/cpu.i: src/cpu.cpp.i
+.PHONY : src/cpu.i
+
+# target to preprocess a source file
+src/cpu.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/cpu.cpp.i
+.PHONY : src/cpu.cpp.i
+
+src/cpu.s: src/cpu.cpp.s
+.PHONY : src/cpu.s
+
+# target to generate assembly for a file
+src/cpu.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/cpu.cpp.s
+.PHONY : src/cpu.cpp.s
+
+src/emulator.o: src/emulator.cpp.o
+.PHONY : src/emulator.o
+
+# target to build an object file
+src/emulator.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/emulator.cpp.o
+.PHONY : src/emulator.cpp.o
+
+src/emulator.i: src/emulator.cpp.i
+.PHONY : src/emulator.i
+
+# target to preprocess a source file
+src/emulator.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/emulator.cpp.i
+.PHONY : src/emulator.cpp.i
+
+src/emulator.s: src/emulator.cpp.s
+.PHONY : src/emulator.s
+
+# target to generate assembly for a file
+src/emulator.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/emulator.cpp.s
+.PHONY : src/emulator.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -162,6 +210,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... emulator"
+	@echo "... src/cpu.o"
+	@echo "... src/cpu.i"
+	@echo "... src/cpu.s"
+	@echo "... src/emulator.o"
+	@echo "... src/emulator.i"
+	@echo "... src/emulator.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
