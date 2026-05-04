@@ -127,9 +127,10 @@ InstrClass Cpu::classify(uint16_t instr)
     // 2. Lower groups
 
     if ((instr & 0b1110000000000000) == 0b0000000000000000) {
-        uint16_t op = (instr >> 11) & 0b11111;
 
-        if (op <= 0b00010)
+        uint16_t op = (instr >> 11) & 0b11111;
+        
+        if (op == 0b00010)
             return InstrClass::SHIFT_IMM;    // 00000–00010
 
         if (op == 0b00011)
@@ -157,7 +158,7 @@ void Cpu::handleSpecialInstructions(uint16_t instruction)
     {
         case 0b00: // ADD (high register)
         {
-                printf("ADD (Register)\n");
+            printf("ADD (Register)\n");
             bool sevenBit = (instruction >> 7) & 0b1;
 
             uint8_t DN_rdn = (d << 1) | sevenBit;
@@ -173,15 +174,58 @@ void Cpu::handleSpecialInstructions(uint16_t instruction)
             break;
         }
         case 0b01: // CMP (high register)
-        {
-            uint32_t result = regs[d] - regs[m];
+        {   
+            printf("CMP (Register)\n");
+            bool N = (instruction >> 7) & 0b1;
+
+            uint8_t m = ((instruction >> 3) & 0b111);
+            uint8_t n = (instruction & 0b111);
+            if (n < 8 && m < 8)
+            {   
+                std::cout << "Unpredictable\n";
+                return;
+            }
+
+            if (n == 15 || m == 15)
+            {
+                std::cout << "Unpredictable\n";
+                return;
+            }
+
+            const auto shifted = shift(this->regs[m], SRType_LSL, 0, aspr.C);
+           
+            const auto result = addWithCarry(this->regs[n], ~shifted, 1);
+
+            this->aspr.C = result.carry_out;
+            this->aspr.V = result.overflow;
+            this->aspr.Z = result.result == 0;
+            this->aspr.N = (result.result >> 31) & 0b1;
+            
             // updateFlagsSub(regs[rd], regs[rm], result);
             break;
         }
 
         case 0b10: // MOV (register)
-            regs[d] = regs[m];
+        {
+            std::cout << "MOV (register)\n";
+            bool N = (instruction >> 7) & 0b1;
+
+            uint8_t m = ((instruction >> 3) & 0b1111);
+            uint8_t d = (instruction & 0b111);
+
+            uint32_t result = this->regs[m];
+            if (d == 15)
+            {
+
+            }
+            else
+            {
+                this->regs[d] = result;
+                aspr.N = (result >> 31 ) & 0b1;
+                aspr.Z = result == 0;
+            }
             break;
+        }
 
         case 0b11: // BX or BLX
         {
@@ -924,6 +968,56 @@ void Cpu::BXWritePC(uint32_t address) {
     // to be implemented
 }
 
+void Cpu::handleMovCmpAddSub(uint16_t instr)
+{
+    uint8_t op  = (instr >> 11) & 0b11;
+    uint8_t d  = (instr >> 8)  & 0b111;
+    uint8_t imm8 = instr & 0xFF;
+
+    switch (op)
+    {
+        case 0b00: // MOVS Rd, #imm
+        {
+            printf("MOV (imm)\n");
+            uint32_t imm32 = (uint32_t) imm8;
+            this->regs[d] = imm32;
+
+            aspr.N = (imm32 >> 31) & 0b1;
+            // aspr.C = 
+            aspr.Z = imm32 == 0;
+            break;
+        }
+
+        case 0b01: // CMP Rd, #imm
+        {
+
+            printf("CMP (imm)\n");
+            uint32_t imm32 = (uint32_t) imm8;
+            // d == n here
+            const auto result = addWithCarry(this->regs[d], ~imm32, 1);
+
+            aspr.N = (result.result >> 31) & 0b1;
+            aspr.C = result.carry_out;
+            aspr.Z = imm32 == 0;
+            aspr.V = result.overflow;
+            break;
+        }
+
+        case 0b10: // ADDS Rd, #imm
+        {
+
+            break;
+        }
+
+        case 0b11: // SUBS Rd, #imm
+        {
+
+
+            break;
+        }
+    }
+}
+
 void Cpu::handleMisc(uint16_t instr) 
 {
 
@@ -1384,18 +1478,8 @@ void Cpu::decode(void)
 {
     printf("PC: %d\n", this->regs[15]);
     uint32_t instruction = this->fetch();
-
-    // printf("Instruction: %lX\n", instruction);
-    
-
-    printf("Classification: %d\n", classify(instruction));
-
-    // return;
     uint8_t format_id = (instruction >> 11) & 0x1F;
-
-    // uint8_t instruction_type = (instruction >> 11) & 0b11111;
-    // std::cout << std::bitset<32>(thumb_mode) << "\n";
-    std::cout << "THum mode:" << std::bitset<5>(format_id) << std::endl;
+    std::cout << "Thumb mode:" << std::bitset<5>(format_id) << std::endl;
 
     if (is32bitInstruction(format_id))
     {
@@ -1454,53 +1538,66 @@ void Cpu::decode(void)
                 break;
 
             case InstrClass::MOV_CMP_ADD_SUB:
+                handleMovCmpAddSub(instruction);
+                this->regs[15] += 2;
                 std::cout << "MOV_CMP_ADD_SUB\n";
                 break;
 
             case InstrClass::ALU:
                 ALUinstr(instruction);
+                this->regs[15] += 2;
                 break;
 
             case InstrClass::HI_REG:
+                handleSpecialInstructions(instruction);
+                this->regs[15] += 2;
                 std::cout << "HI_REG\n";
                 break;
 
             case InstrClass::LDR_LITERAL:
                 std::cout << "LDR_LITERAL\n";
                 handleLDRLiteral(instruction);
+                this->regs[15] += 2;
                 break;
 
             case InstrClass::LOAD_STORE_REG:
                 handleLoadStoreReg(instruction);
+                this->regs[15] += 2;
                 std::cout << "LOAD_STORE_REG\n";
                 break;
 
             case InstrClass::LOAD_STORE_IMM:
                 handleLoadStoreImm(instruction);
+                this->regs[15] += 2;
                 std::cout << "LOAD_STORE_IMM\n";
                 break;
 
             case InstrClass::LOAD_STORE_HALF:
                 handleLoadStoreHalf(instruction);
+                this->regs[15] += 2;
                 std::cout << "LOAD_STORE_HALF\n";
                 break;
 
             case InstrClass::SP_REL:
                 handleSpRelative(instruction);
+                this->regs[15] += 2;
                 break;
 
             case InstrClass::ADDR:
                 std::cout << "ADDR\n";
                 handleAddr(instruction);
+                this->regs[15] += 2;
                 break;
 
             case InstrClass::MISC:
                 std::cout << "MISC\n";
                 handleMisc(instruction);
+                this->regs[15] += 2;
                 break;
 
             case InstrClass::MULTIPLE:
                 handleMultiple(instruction);
+                this->regs[15] += 2;
                 std::cout << "MULTIPLE\n";
                 break;
 
@@ -1522,7 +1619,9 @@ void Cpu::decode(void)
                 break;
         }
 
-        this->regs[15] += 2;
+        this->print_state();
+
+        
     }
 }
 

@@ -1,11 +1,18 @@
 #include <iostream>
 #include "emulator.hpp"
+#include "compiler.hpp"
+
 
 int main(void)
 {
+    auto filename = std::string("test");
+    compile(filename);
+
     Emulator emu;
 
-    emu.load_elf("../src/prog.elf");
+    emu.load_elf("../build/main.elf");
+
+
     emu.startCpu();
 
 

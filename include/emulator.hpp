@@ -18,6 +18,7 @@ class Emulator {
         uint32_t pc = 0;
 
         Emulator(size_t mem_size = 1024 * 1024) : cpu(mem_size) {}
+
         void startCpu(void);
         void load_elf(const std::string& path);
 };

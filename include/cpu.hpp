@@ -77,11 +77,12 @@ class Cpu
     public:
         uint8_t flash[0x1000];
         std::vector<uint8_t> memory;
+        uint32_t regs[16];
+        uint8_t ram[0x1000];
+        ASPR aspr;
+        EPSR espr;
 
-        Cpu(size_t memory_size) : memory(memory_size)
-        {
-
-        }
+        Cpu(size_t memory_size);
 
         uint32_t getSP(void) const;
         void write32(uint32_t address, uint32_t value);
@@ -107,6 +108,7 @@ class Cpu
         void handleLoadStoreImm(uint16_t instr);
         void handleLDRLiteral(uint16_t instruction);
         void handleMultiple(uint16_t instr);
+        void handleMovCmpAddSub(uint16_t instr);
 
         std::pair<uint32_t, bool> LSL_C(uint32_t x, int shift);
         std::pair<uint32_t, bool> ROR_C(uint32_t x, int shift);
@@ -129,8 +131,5 @@ class Cpu
         void print_state(void) const;
 
     private:
-        uint32_t regs[16];
-        uint8_t ram[0x1000];
-        ASPR aspr;
-        EPSR espr;
+
 };
