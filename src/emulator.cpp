@@ -8,6 +8,43 @@ void Emulator::startCpu(void)
     }
 }
 
+void Emulator::write_block(uint32_t addr,
+                            const uint8_t* data,
+                    size_t size)
+{
+    /* FLASH */
+    if (addr >= FLASH_BASE &&
+        addr + size <= FLASH_BASE + cpu.flash.size())
+    {
+        std::memcpy(&cpu.flash[addr - FLASH_BASE],
+                data,
+                size);
+
+        return;
+    }
+
+    /* RAM */
+    if (addr >= RAM_BASE &&
+        addr + size <= RAM_BASE + cpu.ram.size())
+    {
+        std::memcpy(&cpu.ram[addr - RAM_BASE],
+                data,
+                size);
+
+        return;
+    }
+
+    throw std::runtime_error("Invalid block write");
+}
+
+void Emulator::zero_memory(uint32_t addr, size_t size)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        cpu.write8(addr + 1, 0);
+    }
+}
+
 void Emulator::load_elf(const std::string& path)
 {
     std::ifstream file(path, std::ios::binary);
@@ -52,6 +89,7 @@ void Emulator::load_elf(const std::string& path)
                   << " filesz=" << std::dec << phdr.p_filesz
                   << " memsz=" << phdr.p_memsz << "\n";
 
+
         if (addr + phdr.p_memsz > cpu.memory.size())
             throw std::runtime_error("Segment exceeds memory");
 
@@ -59,39 +97,50 @@ void Emulator::load_elf(const std::string& path)
         std::streampos current = file.tellg();
 
         file.seekg(phdr.p_offset);
-        file.read(reinterpret_cast<char*>(&cpu.memory[addr]),
-                  phdr.p_filesz);
+
+        std::vector<uint8_t> buffer(phdr.p_filesz);
+
+        file.read(reinterpret_cast<char*>(buffer.data()), phdr.p_filesz);
+
+
+        printf("RR\n");
+        //file.read(reinterpret_cast<char*>(&cpu.memory[addr]), phdr.p_filesz);
 
         if (!file)
             throw std::runtime_error("Failed reading segment data");
 
-        // Zero-fill (.bss)
+
+        // printf("ADA\n");
+        write_block(addr, buffer.data(), phdr.p_filesz);
+        //Zero-fill (.bss)
         if (phdr.p_memsz > phdr.p_filesz)
         {
-            std::memset(&cpu.memory[addr + phdr.p_filesz],
-                        0,
-                        phdr.p_memsz - phdr.p_filesz);
+            zero_memory(addr + phdr.p_filesz, phdr.p_memsz - phdr.p_filesz);
         }
 
         // Restore position
-        file.seekg(current);
+        // file.seekg(current);
     }
+
 
     
-        uint16_t address = 0;
-    for (int i = 0; i < 10; i++)
-    {
 
-        auto val = cpu.read16(address);
+    std::cout << "Cpu memory[0]: " << std::hex << cpu.read32Flash(0x0) << std::endl;
+    
+    std::cout << "Cpu memory[0x4]: " << std::hex  << cpu.read32Flash(0x4) << std::endl;
 
-        printf("val: %x\n", val);
-        address += 2;
-    }
+    cpu.regs[13] = cpu.read32Flash(0x0);
+
+    cpu.regs[15] = cpu.read32Flash(0x4) & ~1;
 
 
-    cpu.regs[13] = cpu.memory.size();
-    cpu.regs[15] = ehdr.e_entry & ~1;
 
+    // auto instr = cpu.fetch();
+
+    std::cout << "Initial instruciton: 0x" << std::hex << cpu.regs[13] << "\n";
+
+
+    
     std::cout << "Initial SP: 0x" << std::hex << cpu.regs[13] << "\n";
     std::cout << "Reset PC : 0x" << std::hex << cpu.regs[15] << "\n";
 }

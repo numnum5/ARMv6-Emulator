@@ -75,14 +75,24 @@ typedef struct
 class Cpu
 {
     public:
-        uint8_t flash[0x1000];
+        static constexpr uint32_t FLASH_BASE = 0x00000000;
+        static constexpr uint32_t FLASH_SIZE = 64 * 1024;
+
+        static constexpr uint32_t RAM_BASE   = 0x20000000;
+        static constexpr uint32_t RAM_SIZE   = 16 * 1024;
+        // uint8_t flash[0x1000];
+
+        std::vector<uint8_t> flash;
+        std::vector<uint8_t> ram;
         std::vector<uint8_t> memory;
+
+
         uint32_t regs[16];
-        uint8_t ram[0x1000];
+        // uint8_t ram[0x1000];
         ASPR aspr;
         EPSR espr;
 
-        Cpu(size_t memory_size);
+        Cpu(size_t memory_size, size_t ram_size, size_t flash_size);
 
         uint32_t getSP(void) const;
         void write32(uint32_t address, uint32_t value);
@@ -91,6 +101,7 @@ class Cpu
         uint8_t read8(uint32_t address) const;
         uint16_t read16(uint32_t address) const;
         uint32_t read32(uint32_t address) const;
+        uint32_t read32Flash(uint32_t address) const;
         InstrClass classify(uint16_t instr);
         void handleSpecialInstructions(uint16_t instruction);
         uint32_t fetch(void) const;

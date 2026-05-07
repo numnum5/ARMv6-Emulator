@@ -1,0 +1,1 @@
+arm-none-eabi-gcc -mcpu=cortex-m0 -mthumb -nostdlib -T linker.ld setup.c main.c -o firmware.elf

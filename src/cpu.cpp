@@ -1,9 +1,9 @@
 #include "cpu.hpp"
 
 
-Cpu::Cpu(size_t memory_size) : memory(memory_size) 
+Cpu::Cpu(size_t memory_size, size_t ram_size, size_t flash_size) : memory(memory_size), ram(ram_size), flash(flash_size)
 {
-    for(uint8_t i = 0; i < 16; i++)
+    for(uint8_t i = 0; i < 13; i++)
     {
         this->regs[i] = 0;
     }
@@ -16,15 +16,29 @@ Cpu::Cpu(size_t memory_size) : memory(memory_size)
 
 uint32_t Cpu::getSP(void) const
 {
-    return this->regs[15];
+    return this->regs[13];
 }
+
+
+uint32_t Cpu::read32Flash(uint32_t address) const
+{
+    address = address - FLASH_BASE;
+    uint32_t data = this->flash[address] |
+        (this->flash[address + 1] << 8) |
+        (this->flash[address + 2] << 16) |
+        (this->flash[address + 3] << 24);
+
+    return data;
+} 
 
 uint32_t Cpu::read32(uint32_t address) const
 {
-    uint32_t data = this->memory[address] |
-    (this->memory[address + 1] << 8) |
-    (this->memory[address + 2] << 16) |
-    (this->memory[address + 3] << 24);
+    address = address - RAM_BASE;
+
+    uint32_t data = this->ram[address] |
+    (this->ram[address + 1] << 8) |
+    (this->ram[address + 2] << 16) |
+    (this->ram[address + 3] << 24);
 
     // uint32_t data = this->ram[address] |
     //     (this->ram[address + 1] << 8) |
@@ -36,11 +50,11 @@ uint32_t Cpu::read32(uint32_t address) const
 
 void Cpu::write32(uint32_t address, uint32_t value)
 {
-
-    this->memory[address] = value & 0xFF;
-    this->memory[address + 1] = (value >> 0xFF) & 0xFF;
-    this->memory[address + 2] = (value >> 0xFFFF) & 0xFF;
-    this->memory[address + 3] = (value >> 0xFFFFFF) & 0xFF;
+    address = address - RAM_BASE;
+    this->ram[address] = value & 0xFF;
+    this->ram[address + 1] = (value >> 0xFF) & 0xFF;
+    this->ram[address + 2] = (value >> 0xFFFF) & 0xFF;
+    this->ram[address + 3] = (value >> 0xFFFFFF) & 0xFF;
     // this->ram[address] = value & 0xFF;
     // this->ram[address + 1] = (value >> 0xFF) & 0xFF;
     // this->ram[address + 2] = (value >> 0xFFFF) & 0xFF;
@@ -49,17 +63,22 @@ void Cpu::write32(uint32_t address, uint32_t value)
 
 void Cpu::write16(uint32_t address, uint16_t value)
 {
-    this->memory[address] = value & 0xFF;
-    this->memory[address + 1] = (value >> 0xFF) & 0xFF;
+ 
+    printf("write16(): address: %x\n", address);
+    address = address - RAM_BASE;
+    this->ram[address] = value & 0xFF;
+    this->ram[address + 1] = (value >> 0xFF) & 0xFF;
 }
 
 void Cpu::write8(uint32_t address, uint8_t value)
 {
-    this->memory[address] = value;
+    address = address - RAM_BASE;
+    this->ram[address] = value;
 }
 
 uint8_t Cpu::read8(uint32_t address) const
 {
+    address = address - RAM_BASE;
     uint8_t data = this->ram[address];
     
     return data;
@@ -74,29 +93,36 @@ uint16_t Cpu::read16(uint32_t address) const
 
 InstrClass Cpu::classify(uint16_t instr)
 {
-    if ((instr & 0b1111000000000000) == 0b1101000000000000) {
+    if ((instr & 0b1111000000000000) == 0b1101000000000000) 
+    {
         if ((instr & 0b0000111100000000) == 0b0000111100000000)
             return InstrClass::SVC;          // 1101 1111 xxxx xxxx
         return InstrClass::COND_BRANCH;      // 1101 xxxx xxxx xxxx
     }
 
-    if ((instr & 0b1111100000000000) == 0b1110000000000000) {
+    if ((instr & 0b1111100000000000) == 0b1110000000000000) 
+    {
         return InstrClass::UNCOND_BRANCH;    // 11100 xxxxx xxxxx
     }
 
-    if ((instr & 0b1111110000000000) == 0b0100000000000000) {
+    if ((instr & 0b1111110000000000) == 0b0100000000000000) 
+    {
+        printf("ALU\n");
         return InstrClass::ALU;              // 010000 xxxxxx xxxx
     }
 
-    if ((instr & 0b1111110000000000) == 0b0100010000000000) {
+    if ((instr & 0b1111110000000000) == 0b0100010000000000) 
+    {
         return InstrClass::HI_REG;           // 010001 xxxxxx xxxx
     }
 
-    if ((instr & 0b1111100000000000) == 0b0100100000000000) {
+    if ((instr & 0b1111100000000000) == 0b0100100000000000) 
+    {
         return InstrClass::LDR_LITERAL;      // 01001 xxxxx xxxxx
     }
 
-    if ((instr & 0b1111000000000000) == 0b0101000000000000) {
+    if ((instr & 0b1111000000000000) == 0b0101000000000000) 
+    {
         return InstrClass::LOAD_STORE_REG;   // 0101xx xxxx xxxx
     }
 
@@ -104,7 +130,8 @@ InstrClass Cpu::classify(uint16_t instr)
         return InstrClass::LOAD_STORE_IMM;   // 011xx xxxx xxxx
     }
 
-    if ((instr & 0b1111000000000000) == 0b1000000000000000) {
+    if ((instr & 0b1111000000000000) == 0b1000000000000000) 
+    {
         return InstrClass::LOAD_STORE_HALF;  // 1000x xxxx xxxx
     }
 
@@ -153,7 +180,8 @@ void Cpu::handleSpecialInstructions(uint16_t instruction)
 
     uint8_t m = ((instruction >> 3) & 0b111) | (H2 << 3);
     uint8_t d = (instruction & 0b111) | (H1 << 3);
-    
+
+    // 1011 0101 1000 0000
     switch (op)
     {
         case 0b00: // ADD (high register)
@@ -276,14 +304,16 @@ uint32_t Cpu::fetch(void) const
 
     uint32_t pc = this->regs[15];
 
-    uint32_t instr = this->memory[pc] |
-        (this->memory[pc + 1] << 8) |
-        (this->memory[pc + 2] << 16) |
-        (this->memory[pc + 3] << 24);
-    // uint32_t instr = this->flash[pc] |
-    //                 (this->flash[pc + 1] << 8) |
-    //                 (this->flash[pc + 2] << 16) |
-    //                 (this->flash[pc + 3] << 24);
+
+    printf("pc: %d\n", pc);
+    // uint32_t instr = this->memory[pc] |
+    //     (this->memory[pc + 1] << 8) |
+    //     (this->memory[pc + 2] << 16) |
+    //     (this->memory[pc + 3] << 24);
+    uint32_t instr = this->flash[pc] |
+                    (this->flash[pc + 1] << 8) |
+                    (this->flash[pc + 2] << 16) |
+                    (this->flash[pc + 3] << 24);
     return instr;
 }
 
@@ -439,6 +469,8 @@ bool Cpu::is32bitInstruction(uint8_t thumb_mode)
 
 void Cpu::ALUinstr(uint16_t instruction)
         {
+
+            printf("handle ALU\n");
             uint8_t op = (instruction >> 6) & 0xF;
             uint8_t rm = (instruction >> 3) & 0x7;
             uint8_t rd = instruction & 0x7;
@@ -451,6 +483,8 @@ void Cpu::ALUinstr(uint16_t instruction)
             {
                  case 0x0: // AND
                 {
+
+                    printf("AND\n");
                     uint8_t n, d = instruction & 0b111;
                     uint8_t m = (instruction >> 3) & 0b111;
                     uint32_t Rm = this->regs[m];
@@ -470,6 +504,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
                 case 0x1: // EOR
                 {
+                    printf("EOR\n");
                     uint8_t n, d = instruction & 0b111;
                     uint8_t m = (instruction >> 3) & 0b111;
 
@@ -627,6 +662,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
                 case 0x9: // NEG
                 {
+                    printf("NEG\n");
                     uint8_t d = instruction & 0b111;
                     uint8_t n = (instruction >> 3) & 0b111;
 
@@ -644,6 +680,8 @@ void Cpu::ALUinstr(uint16_t instruction)
                 case 0xA: // CMP (no write)
                 {
                     printf("CMP (Register)\n");
+
+
                     uint8_t n, d = instruction & 0b111;
                     uint8_t m = (instruction >> 3) & 0b111;
                    
@@ -760,6 +798,8 @@ void Cpu::handleLoadStoreHalf(uint16_t instr)
 
     if (L) 
     {
+
+        printf("hello2\n");
         uint32_t imm32 = (uint32_t)(imm5 << 2);
 
         bool index = true;
@@ -776,6 +816,8 @@ void Cpu::handleLoadStoreHalf(uint16_t instr)
     } 
     else 
     {
+
+        printf("Hello\n");
         uint32_t imm32 = (uint32_t)(imm5 << 2);
 
         bool index = true;
@@ -788,6 +830,7 @@ void Cpu::handleLoadStoreHalf(uint16_t instr)
 
         uint32_t address = index  ? offset_addr : Rn;
 
+        printf("addr: %x\n", address);
         write16(address, (uint16_t) this->regs[t]);
     }
 }
@@ -1027,13 +1070,16 @@ void Cpu::handleMisc(uint16_t instr)
         bool S = (instr >> 7) & 1;     // 0=ADD, 1=SUB
         const uint8_t imm7 = instr & 0b1111111;
         const uint32_t imm32 = ((uint32_t) imm7 << 2);
+
         if (S)
         {
+            printf("SUB\n");
             const auto result = this->addWithCarry(getSP(), ~imm32, 1);
             this->regs[13] = result.result;
         }
         else
         {
+            printf("ADD\n");
             const auto result = this->addWithCarry(getSP(), imm32, 0);
             this->regs[13] = result.result;
         }
@@ -1047,8 +1093,9 @@ void Cpu::handleMisc(uint16_t instr)
         bool R = (instr >> 8) & 1;    // LR (push) / PC (pop)
         uint8_t register_list = instr & 0xFF;
 
-        if (!L) 
+        if (L) 
         {
+            printf("POP\n");
             uint32_t registers = register_list << 7;
 
             if (std::bitset<32>(registers).count() < 1)
@@ -1077,6 +1124,30 @@ void Cpu::handleMisc(uint16_t instr)
         } 
         else 
         {
+            printf("PUSH\n");
+            bool M = (instr >> 8) & 1; 
+
+            //             0 : M : 000 000 : 0000 0000
+            //                               
+            uint32_t registers =  register_list | (M << 13);
+
+
+            uint32_t address = getSP() - (4 * std::bitset<32>(registers).count());
+
+            printf("handleMisc(): adddress: %x\n", address);
+
+            for (int i = 0; i < 15; i++)
+            {
+                if (register_list & (1 << i))
+                {
+                    write32(address, regs[i]);
+                    address += 4;
+                }
+            }
+
+            this->regs[13] -= (4 * std::bitset<32>(registers).count());
+
+        
             // PUSH
             // tobe implemented
         }
@@ -1478,7 +1549,10 @@ void Cpu::decode(void)
 {
     printf("PC: %d\n", this->regs[15]);
     uint32_t instruction = this->fetch();
+
+
     uint8_t format_id = (instruction >> 11) & 0x1F;
+    
     std::cout << "Thumb mode:" << std::bitset<5>(format_id) << std::endl;
 
     if (is32bitInstruction(format_id))
@@ -1526,7 +1600,11 @@ void Cpu::decode(void)
     else
     {
         std::cout << "Intrusction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
+        
         InstrClass instructionClass = classify(instruction);
+        
+        std::cout << "Classified" << std::endl;
+std::cout << static_cast<int>(instructionClass) << std::endl;
         switch (instructionClass)
         {
             case InstrClass::SHIFT_IMM:
@@ -1538,13 +1616,16 @@ void Cpu::decode(void)
                 break;
 
             case InstrClass::MOV_CMP_ADD_SUB:
+            std::cout << "MOV_CMP_ADD_SUB\n";
                 handleMovCmpAddSub(instruction);
                 this->regs[15] += 2;
-                std::cout << "MOV_CMP_ADD_SUB\n";
+                
                 break;
 
             case InstrClass::ALU:
-                ALUinstr(instruction);
+
+                std::cout << "ALU\n";
+                // ALUinstr(instruction);
                 this->regs[15] += 2;
                 break;
 

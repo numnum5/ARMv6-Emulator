@@ -5,12 +5,12 @@
 
 int main(void)
 {
-    auto filename = std::string("test");
-    compile(filename);
+    // auto filename = std::string("test");
+    // compile(filename);
 
     Emulator emu;
 
-    emu.load_elf("../build/main.elf");
+    emu.load_elf("../build/firmware.elf");
 
 
     emu.startCpu();
