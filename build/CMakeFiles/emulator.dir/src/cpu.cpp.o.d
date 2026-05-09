@@ -150,4 +150,6 @@ CMakeFiles/emulator.dir/src/cpu.cpp.o: /home/numnum/emulator/src/cpu.cpp \
  /usr/include/c++/11/bits/stl_vector.h \
  /usr/include/c++/11/bits/stl_bvector.h \
  /usr/include/c++/11/bits/vector.tcc /usr/include/c++/11/limits \
- /usr/include/c++/11/bitset /usr/include/c++/11/bit
+ /usr/include/c++/11/bitset /usr/include/c++/11/bit \
+ /home/numnum/emulator/include/registers.hpp /usr/include/c++/11/cassert \
+ /usr/include/assert.h

@@ -3,6 +3,7 @@
 #include <limits>
 #include <bitset>
 #include <bit>
+#include "registers.hpp"
 
 using bit = bool;
 
@@ -84,25 +85,27 @@ class Cpu
 
         std::vector<uint8_t> flash;
         std::vector<uint8_t> ram;
-        std::vector<uint8_t> memory;
-
-
+        Registers registers;
         uint32_t regs[16];
         // uint8_t ram[0x1000];
         ASPR aspr;
         EPSR espr;
 
-        Cpu(size_t memory_size, size_t ram_size, size_t flash_size);
+        Cpu(size_t ram_size, size_t flash_size);
 
         uint32_t getSP(void) const;
+        bool conditionPassed(uint8_t cond) const;
         void write32(uint32_t address, uint32_t value);
         void write16(uint32_t address, uint16_t value);
         void write8(uint32_t address, uint8_t value);
         uint8_t read8(uint32_t address) const;
         uint16_t read16(uint32_t address) const;
         uint32_t read32(uint32_t address) const;
+        uint32_t read32v2(uint32_t address) const;
         uint32_t read32Flash(uint32_t address) const;
         InstrClass classify(uint16_t instr);
+
+        
         void handleSpecialInstructions(uint16_t instruction);
         uint32_t fetch(void) const;
         uint8_t currentCond(uint32_t instruction);
@@ -120,6 +123,10 @@ class Cpu
         void handleLDRLiteral(uint16_t instruction);
         void handleMultiple(uint16_t instr);
         void handleMovCmpAddSub(uint16_t instr);
+        void handleUncondBranch(uint16_t instr);
+        void handleCondBranch(uint16_t instr);
+        void handleAddSub(uint16_t instr);
+        void handleShiftImmediate(uint16_t instr);
 
         std::pair<uint32_t, bool> LSL_C(uint32_t x, int shift);
         std::pair<uint32_t, bool> ROR_C(uint32_t x, int shift);

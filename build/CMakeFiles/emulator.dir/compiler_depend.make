@@ -371,7 +371,10 @@ CMakeFiles/emulator.dir/src/cpu.cpp.o: ../src/cpu.cpp \
   /usr/include/c++/11/bits/vector.tcc \
   /usr/include/c++/11/limits \
   /usr/include/c++/11/bitset \
-  /usr/include/c++/11/bit
+  /usr/include/c++/11/bit \
+  ../include/registers.hpp \
+  /usr/include/c++/11/cassert \
+  /usr/include/assert.h
 
 CMakeFiles/emulator.dir/src/emulator.cpp.o: ../src/emulator.cpp \
   /usr/include/stdc-predef.h \
@@ -571,7 +574,10 @@ CMakeFiles/emulator.dir/src/emulator.cpp.o: ../src/emulator.cpp \
   /usr/include/string.h \
   /usr/include/strings.h \
   /usr/include/elf.h \
-  ../include/cpu.hpp
+  ../include/cpu.hpp \
+  ../include/registers.hpp \
+  /usr/include/c++/11/cassert \
+  /usr/include/assert.h
 
 CMakeFiles/emulator.dir/src/main.cpp.o: ../src/main.cpp \
   /usr/include/stdc-predef.h \
@@ -772,8 +778,40 @@ CMakeFiles/emulator.dir/src/main.cpp.o: ../src/main.cpp \
   /usr/include/strings.h \
   /usr/include/elf.h \
   ../include/cpu.hpp \
+  ../include/registers.hpp \
+  /usr/include/c++/11/cassert \
+  /usr/include/assert.h \
   ../include/compiler.hpp
 
+CMakeFiles/emulator.dir/src/registers.cpp.o: ../src/registers.cpp \
+  /usr/include/stdc-predef.h \
+  ../include/registers.hpp \
+  /usr/lib/gcc/x86_64-linux-gnu/11/include/stdint.h \
+  /usr/include/stdint.h \
+  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+  /usr/include/features.h \
+  /usr/include/features-time64.h \
+  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+  /usr/include/x86_64-linux-gnu/bits/timesize.h \
+  /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+  /usr/include/x86_64-linux-gnu/bits/long-double.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+  /usr/include/x86_64-linux-gnu/bits/types.h \
+  /usr/include/x86_64-linux-gnu/bits/typesizes.h \
+  /usr/include/x86_64-linux-gnu/bits/time64.h \
+  /usr/include/x86_64-linux-gnu/bits/wchar.h \
+  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
+  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
+  /usr/include/c++/11/cassert \
+  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
+  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
+  /usr/include/x86_64-linux-gnu/c++/11/bits/cpu_defines.h \
+  /usr/include/c++/11/pstl/pstl_config.h \
+  /usr/include/assert.h
+
+
+../src/registers.cpp:
 
 ../src/main.cpp:
 
@@ -792,6 +830,8 @@ CMakeFiles/emulator.dir/src/main.cpp.o: ../src/main.cpp \
 ../include/emulator.hpp:
 
 ../src/emulator.cpp:
+
+/usr/include/c++/11/cassert:
 
 /usr/include/c++/11/limits:
 
@@ -936,6 +976,8 @@ CMakeFiles/emulator.dir/src/main.cpp.o: ../src/main.cpp \
 ../src/compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/struct_mutex.h:
+
+/usr/include/assert.h:
 
 /usr/include/c++/11/bit:
 
@@ -1120,6 +1162,8 @@ CMakeFiles/emulator.dir/src/main.cpp.o: ../src/main.cpp \
 /usr/include/c++/11/cwchar:
 
 /usr/include/c++/11/bits/stl_algobase.h:
+
+../include/registers.hpp:
 
 /usr/include/x86_64-linux-gnu/c++/11/bits/c++locale.h:
 

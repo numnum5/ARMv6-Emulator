@@ -1,11 +1,30 @@
 #include "emulator.hpp"
 
 void Emulator::startCpu(void)
+
 {
-    for (uint32_t i = 0; i < 10; i++)
+
+    printf("%d\n", cpu.flash.size());
+
+    // for(uint32_t i = 0; i < 158; i+=2)
+    // {
+
+    //     printf("pc: %d\n", i);
+    //     uint16_t data = cpu.flash[i] | cpu.flash[i+1] << 8;
+    //     printf("instruction: %x\n", data);
+    // }
+
+
+    uint16_t data = cpu.flash[152] | cpu.flash[153] << 8;
+        printf("instruction: %x\n", data);
+    // // printf("%x\n", cpu.read32v2(0x52));
+    for (int i = 0 ; i < 36; i++)
     {
         cpu.decode();
     }
+
+
+    cpu.print_state();
 }
 
 void Emulator::write_block(uint32_t addr,
@@ -16,6 +35,8 @@ void Emulator::write_block(uint32_t addr,
     if (addr >= FLASH_BASE &&
         addr + size <= FLASH_BASE + cpu.flash.size())
     {
+        std::cout << "flash" << std::endl;
+
         std::memcpy(&cpu.flash[addr - FLASH_BASE],
                 data,
                 size);
@@ -27,6 +48,7 @@ void Emulator::write_block(uint32_t addr,
     if (addr >= RAM_BASE &&
         addr + size <= RAM_BASE + cpu.ram.size())
     {
+         std::cout << "Ram" << std::endl;
         std::memcpy(&cpu.ram[addr - RAM_BASE],
                 data,
                 size);
@@ -41,7 +63,7 @@ void Emulator::zero_memory(uint32_t addr, size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
-        cpu.write8(addr + 1, 0);
+        cpu.write8(addr + i, 0);
     }
 }
 
@@ -84,14 +106,17 @@ void Emulator::load_elf(const std::string& path)
         // Use physical address for embedded
         uint32_t addr = phdr.p_paddr;
 
+        printf("addr=%08x filesz=%x memsz=%x\n",
+            addr,
+            phdr.p_filesz,
+            phdr.p_memsz);
         std::cout << "Loading segment " << i
                   << " addr=0x" << std::hex << addr
                   << " filesz=" << std::dec << phdr.p_filesz
                   << " memsz=" << phdr.p_memsz << "\n";
 
-
-        if (addr + phdr.p_memsz > cpu.memory.size())
-            throw std::runtime_error("Segment exceeds memory");
+        // if (addr + phdr.p_memsz > cpu.memory.size())
+            // throw std::runtime_error("Segment exceeds memory");
 
         // Save current file position
         std::streampos current = file.tellg();
@@ -119,7 +144,7 @@ void Emulator::load_elf(const std::string& path)
         }
 
         // Restore position
-        // file.seekg(current);
+        file.seekg(current);
     }
 
 
@@ -138,9 +163,6 @@ void Emulator::load_elf(const std::string& path)
     // auto instr = cpu.fetch();
 
     std::cout << "Initial instruciton: 0x" << std::hex << cpu.regs[13] << "\n";
-
-
-    
     std::cout << "Initial SP: 0x" << std::hex << cpu.regs[13] << "\n";
     std::cout << "Reset PC : 0x" << std::hex << cpu.regs[15] << "\n";
 }

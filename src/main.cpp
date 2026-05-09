@@ -10,8 +10,8 @@ int main(void)
 
     Emulator emu;
 
-    emu.load_elf("../build/firmware.elf");
-
+    emu.load_elf("../elf/firmware.elf");
+    
 
     emu.startCpu();
 

@@ -158,4 +158,5 @@ CMakeFiles/emulator.dir/src/main.cpp.o: \
  /usr/include/c++/11/bits/fstream.tcc /usr/include/c++/11/cstring \
  /usr/include/string.h /usr/include/strings.h /usr/include/elf.h \
  /home/numnum/emulator/include/cpu.hpp \
- /home/numnum/emulator/include/compiler.hpp
+ /home/numnum/emulator/include/registers.hpp /usr/include/c++/11/cassert \
+ /usr/include/assert.h /home/numnum/emulator/include/compiler.hpp

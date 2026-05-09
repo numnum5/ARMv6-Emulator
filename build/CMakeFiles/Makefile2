@@ -81,12 +81,12 @@ clean: CMakeFiles/emulator.dir/clean
 CMakeFiles/emulator.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=1,2,3,4,5 "Built target emulator"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=1,2,3,4,5,6 "Built target emulator"
 .PHONY : CMakeFiles/emulator.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/emulator.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/numnum/emulator/build/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/numnum/emulator/build/CMakeFiles 6
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/emulator.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/numnum/emulator/build/CMakeFiles 0
 .PHONY : CMakeFiles/emulator.dir/rule

@@ -23,7 +23,7 @@ class Emulator {
         static constexpr uint32_t RAM_BASE   = 0x20000000;
         static constexpr uint32_t RAM_SIZE   = 16 * 1024;
 
-        Emulator(size_t mem_size = 1024 * 1024) : cpu(mem_size, 16 * 1024, 64 * 1024) {}
+        Emulator() : cpu(FLASH_SIZE, RAM_SIZE) {}
 
         void startCpu(void);
         void zero_memory(uint32_t addr, size_t size);

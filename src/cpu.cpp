@@ -1,9 +1,11 @@
 #include "cpu.hpp"
 
-
-Cpu::Cpu(size_t memory_size, size_t ram_size, size_t flash_size) : memory(memory_size), ram(ram_size), flash(flash_size)
+constexpr uint32_t UART_BASE = 0x40000000;
+constexpr uint32_t UART_DR   = UART_BASE + 0x0;
+constexpr uint32_t UART_SR   = UART_BASE + 0x4;
+Cpu::Cpu(size_t ram_size, size_t flash_size) : ram(ram_size), flash(flash_size)
 {
-    for(uint8_t i = 0; i < 13; i++)
+    for(uint8_t i = 0; i < 16; i++)
     {
         this->regs[i] = 0;
     }
@@ -31,6 +33,54 @@ uint32_t Cpu::read32Flash(uint32_t address) const
     return data;
 } 
 
+bool Cpu::conditionPassed(uint8_t cond) const
+{
+    bool result = false;
+
+    switch(cond >> 1)
+    {
+    case 0b000:
+        result = aspr.Z;
+        break;
+
+    case 0b001:
+        result = aspr.C;
+        break;
+
+    case 0b010:
+        result = aspr.N;
+        break;
+
+    case 0b011:
+        result = aspr.V;
+        break;
+
+    case 0b100:
+        result = aspr.C && !aspr.Z;
+        break;
+
+    case 0b101:
+        result = (aspr.N == aspr.V);
+        break;
+
+    case 0b110:
+        result = (aspr.N == aspr.V) && !aspr.Z;
+        break;
+
+    case 0b111:
+        result = true;
+        break;
+    }
+
+    // invert condition except AL
+    if ((cond & 1) && cond != 0b1110)
+    {
+        result = !result;
+    }
+
+    return result;
+}
+
 uint32_t Cpu::read32(uint32_t address) const
 {
     address = address - RAM_BASE;
@@ -40,21 +90,38 @@ uint32_t Cpu::read32(uint32_t address) const
     (this->ram[address + 2] << 16) |
     (this->ram[address + 3] << 24);
 
-    // uint32_t data = this->ram[address] |
-    //     (this->ram[address + 1] << 8) |
-    //     (this->ram[address + 2] << 16) |
-    //     (this->ram[address + 3] << 24);
-    
     return data;
 }
 
+
+
+
 void Cpu::write32(uint32_t address, uint32_t value)
 {
+    if (address == 0x20000ff0)
+    {
+
+        printf("WRITING TO THIS VALUE WTF: %x\n", value);
+        // while(1);
+    }
+
+    if(address == UART_DR)
+    {
+        printf("%c", value & 0xFF);
+        fflush(stdout);
+
+        // while(1);
+        return;
+    }
+
     address = address - RAM_BASE;
     this->ram[address] = value & 0xFF;
-    this->ram[address + 1] = (value >> 0xFF) & 0xFF;
-    this->ram[address + 2] = (value >> 0xFFFF) & 0xFF;
-    this->ram[address + 3] = (value >> 0xFFFFFF) & 0xFF;
+    this->ram[address + 1] = (value >> 8) & 0xFF;
+    this->ram[address + 2] = (value >> 16) & 0xFF;
+    this->ram[address + 3] = (value >> 24) & 0xFF;
+ 
+
+    printf("value after writing: %x\n", this->read32v2(0x20000ff0));
     // this->ram[address] = value & 0xFF;
     // this->ram[address + 1] = (value >> 0xFF) & 0xFF;
     // this->ram[address + 2] = (value >> 0xFFFF) & 0xFF;
@@ -157,11 +224,15 @@ InstrClass Cpu::classify(uint16_t instr)
 
         uint16_t op = (instr >> 11) & 0b11111;
         
-        if (op == 0b00010)
-            return InstrClass::SHIFT_IMM;    // 00000–00010
 
         if (op == 0b00011)
             return InstrClass::ADD_SUB;
+
+        if ((op & 0b11000) == 0b00000)
+        {
+            return InstrClass::SHIFT_IMM;
+            printf("THIS IS LSL\n");
+        }
     }
 
     if ((instr & 0b1110000000000000) == 0b0010000000000000) {
@@ -170,7 +241,56 @@ InstrClass Cpu::classify(uint16_t instr)
 
     return InstrClass::UNKNOWN;
 }
+void Cpu::handleAddSub(uint16_t instr)
+{
+    uint8_t I  = (instr >> 10) & 0x1;
+    uint8_t Op = (instr >> 9)  & 0x1;
 
+    uint8_t Rn = (instr >> 3) & 0x7;
+    uint8_t Rs = (instr >> 6) & 0x7;
+    uint8_t Rd = instr & 0x7;
+
+    uint32_t operand2;
+
+    // immediate or register
+    if (I)
+        operand2 = Rs;          // imm3
+    else
+        operand2 = regs[Rs];    // register
+
+    uint32_t result;
+
+    if (Op == 0)
+    {
+        // ADD
+        printf("ADD\n");
+        auto res = addWithCarry(regs[Rn], operand2, 0);
+
+        result = res.result;
+
+        aspr.N = (result >> 31) & 1;
+        aspr.Z = (result == 0);
+        aspr.C = res.carry_out;
+        aspr.V = res.overflow;
+    }
+    else
+    {
+                printf("SUB\n");
+        // SUB
+        auto res = addWithCarry(regs[Rn], ~operand2, 1);
+
+        result = res.result;
+
+        aspr.N = (result >> 31) & 1;
+        aspr.Z = (result == 0);
+        aspr.C = res.carry_out;
+        aspr.V = res.overflow;
+    }
+
+    regs[Rd] = result;
+
+    regs[15] += 2;
+}
 
 void Cpu::handleSpecialInstructions(uint16_t instruction)
 {
@@ -468,324 +588,325 @@ bool Cpu::is32bitInstruction(uint8_t thumb_mode)
 }
 
 void Cpu::ALUinstr(uint16_t instruction)
+{
+    printf("handle ALU\n");
+    uint8_t op = (instruction >> 6) & 0xF;
+    uint8_t rm = (instruction >> 3) & 0x7;
+    uint8_t rd = instruction & 0x7;
+
+    uint32_t a = regs[rd];
+    uint32_t b = regs[rm];
+    uint32_t result;
+
+    switch (op)
+    {
+            case 0x0: // AND
         {
 
-            printf("handle ALU\n");
-            uint8_t op = (instruction >> 6) & 0xF;
-            uint8_t rm = (instruction >> 3) & 0x7;
-            uint8_t rd = instruction & 0x7;
-
-            uint32_t a = regs[rd];
-            uint32_t b = regs[rm];
-            uint32_t result;
-
-            switch (op)
-            {
-                 case 0x0: // AND
-                {
-
-                    printf("AND\n");
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-                    uint32_t Rm = this->regs[m];
-
-                    uint8_t shift_n = 0;
-                    SRType type = SRType_LSL;    
-                    Shift_c shifted = this->shift_c(Rm, type, shift_n, this->aspr.C);                              
-
-                    uint32_t result = shifted.result & this->regs[n];
-
-                    this->regs[d] = result;
-                    this->aspr.N = shifted.result >> 31;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = shifted.result == 0x0;
-                    break;
-                }
-
-                case 0x1: // EOR
-                {
-                    printf("EOR\n");
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-
-                    uint32_t Rm = this->regs[m];
-                    uint32_t Rn = this->regs[n];
-
-                    Shift_c shifted = this->shift_c(Rm, SRType_LSL, 0, aspr.C);
-
-                    uint32_t result = Rn ^ shifted.result;
-
-                    this->regs[d] = result;
-
-                    this->aspr.N = (result >> 31) & 0b1;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = result == 0x0;
-                    
-                    break;
-                }
-
-                case 0x2: // LSL (register)
-                {
-                    printf("LSL (register)\n");
-                    const uint8_t n = instruction & 0b111;
-                    const uint8_t d = instruction & 0b111;
-                    const uint8_t m = (instruction >> 3) & 0b111;
-                    const uint8_t shift_n = 0;
-
-                    const SRType type = SRType_LSL;
-
-                    const uint32_t Rm = this->regs[m];
-                    const uint32_t Rn = this->regs[n];
-                    const uint32_t shifted = this->shift(Rm, type, shift_n, this->aspr.C);
-
-                    const AddCarryResult carry_result = this->addWithCarry(Rn,shifted, this->aspr.C);
-
-                    this->regs[d] = carry_result.result;
-
-                    this->aspr.N = (carry_result.result >> 31) & 0b1;
-                    this->aspr.C = carry_result.carry_out;
-                    this->aspr.Z = carry_result.result == 0x0;
-                    this->aspr.V = carry_result.overflow;
-                    break;
-                }
-
-                case 0x3: // LSR (register)
-                {
-                    printf("LSR (register)\n");
-                    const uint8_t n = instruction & 0b111;
-                    const uint8_t d = instruction & 0b111;
-                    const uint8_t m = (instruction >> 3) & 0b111;
-                    const uint8_t shift_n = this->regs[m];
-
-                    const auto shifted = this->shift_c(this->regs[n], SRType_LSR, shift_n, this->aspr.C);
-
-                    this->regs[d] = shifted.result;
-                    
-                    this->aspr.N = (shifted.result >> 31) & 0b1;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = shifted.result == 0x0;
-                
-                    break;
-                }
-
-                case 0x4: // ASR (register)
-                {
-                    printf("ASR (register)\n");
-                    const uint8_t n = instruction & 0b111;
-                    const uint8_t d = instruction & 0b111;
-                    const uint8_t m = (instruction >> 3) & 0b111;
-                    const uint8_t shift_n = this->regs[m];
-
-                    const auto shifted = this->shift_c(this->regs[n], SRType_ASR, shift_n, this->aspr.C);
-
-                    this->regs[d] = shifted.result;
-                    
-                    this->aspr.N = (shifted.result >> 31) & 0b1;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = shifted.result == 0x0;
-                    break;
-                }
-
-                case 0x5: // ADC
-                {
-                    printf("ADC\n");
-                    const uint8_t n = instruction & 0b111;
-                    const uint8_t d = instruction & 0b111;
-                    const uint8_t m = (instruction >> 3) & 0b111;
-
-                    const auto shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C);
-                    const auto result = addWithCarry(this->regs[n], shifted, aspr.C);
-
-                    this->regs[d] = result.result;
-
-                    this->aspr.N = (result.result >> 31) & 0b1;
-                    this->aspr.C = result.carry_out;
-                    this->aspr.Z = result.result == 0x0;
-                    this->aspr.V = result.overflow;
-
-                    break;
-                }
-                case 0x6: // SBC
-                {
-                    printf("SBC\n");
-                    const uint8_t n = instruction & 0b111;
-                    const uint8_t d = instruction & 0b111;
-                    const uint8_t m = (instruction >> 3) & 0b111;
-                    
-                    const auto shifted = this->shift(this->regs[m], SRType_LSL, 0, aspr.C);
-
-                    const auto result = addWithCarry(this->regs[n], ~shifted , aspr.C);
-
-                    this->regs[d] = result.result;
-
-                    this->aspr.N = (result.result >> 31) & 0b1;
-                    this->aspr.Z = result.result == 0x0;
-                    this->aspr.C = result.carry_out;
-                    this->aspr.V = result.overflow;
-
-                    break;
-                }
-
-                case 0x7: // ROR
-                {
-                    printf("ROR\n");
-                    uint8_t d, n = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-
-                    uint8_t shift_n = this->regs[m] & 0xFF;
-
-                    auto result = shift_c(this->regs[n], SRType_ROR, shift_n, aspr.C);
-
-                    this->regs[d] = result.result;
-
-                    this->aspr.N = (result.result >> 31) & 0b1;
-                    this->aspr.Z = result.result == 0x0;
-                    this->aspr.C = result.carry_out;
-                    break;
-                }
-
-                case 0x8: // TST (no write)
-                {
-                    printf("TST\n");
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-
-                    const auto shifted = this->shift_c(this->regs[m], SRType_LSL, 0, aspr.C);     
-
-                    const uint32_t result = this->regs[n] & shifted.result;
-
-                    this->aspr.N = result >> 31;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = result == 0x0;
-                    break;
-                }
-
-                case 0x9: // NEG
-                {
-                    printf("NEG\n");
-                    uint8_t d = instruction & 0b111;
-                    uint8_t n = (instruction >> 3) & 0b111;
-
-                    auto result = addWithCarry(~(this->regs[n]), 0, true);
-
-                    this->regs[d] = result.result;
-
-                    this->aspr.N = (result.result >> 31) & 0b1;
-                    this->aspr.Z = result.result == 0x0;
-                    this->aspr.C = result.carry_out;
-                    this->aspr.V = result.overflow;
-                    break;
-                }
-
-                case 0xA: // CMP (no write)
-                {
-                    printf("CMP (Register)\n");
-
-
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-                   
-                    const uint32_t shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C); 
-
-                    const auto result = addWithCarry(this->regs[n], ~shifted, 1);
-                    
-                    this->aspr.N = (result.result >> 31) & 0b1;
-                    this->aspr.V = result.overflow;
-                    this->aspr.C = result.carry_out;
-                    this->aspr.Z = result.result == 0x0;
-                    break;
-                }
-
-                case 0xB: // CMN (no write)
-                {
-                    printf("CMN (Register)\n");
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-                   
-                    const uint32_t shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C); 
-
-                    const auto result = addWithCarry(this->regs[n], shifted, 0);
-                    
-                    this->aspr.N = (result.result >> 31) & 0b1;
-                    this->aspr.V = result.overflow;
-                    this->aspr.C = result.carry_out;
-                    this->aspr.Z = result.result == 0x0;
-
-                    break;
-                }
-
-                case 0xC: // ORR
-                {
-                    printf("ORR (Register)\n");
-                    uint8_t n, d = instruction & 0b111;
-                    const uint8_t m = (instruction >> 3) & 0b111;
-            
-                    const Shift_c shifted = this->shift_c(this->regs[m], SRType_LSL, 0, aspr.C);
-
-                    const uint32_t result = this->regs[n] | shifted.result;
-
-                    this->regs[d] = result;
-                    this->aspr.N = (result >> 31) & 0b1;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = result == 0x0;
-                    break;
-                }
-                case 0xD: // MUL
-                {
-                    printf("MUL\n");
-
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-
-                    uint32_t operand1 = this->regs[n];
-                    uint32_t operand2 = this->regs[m];
-
-                    uint64_t result = operand2 * operand1;
-
-                    this->regs[d] = (uint32_t) result;
-
-                    this->aspr.N = result >> 31;
-
-                    this->aspr.Z = (uint32_t) result == 0;
-                    break;
-                }
-
-                case 0xE: // BIC
-                {
-                    printf("BIC\n");
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-         
-                    Shift_c shifted = this->shift_c(this->regs[m], SRType_LSL, 0, this->aspr.C);                              
-
-                    uint32_t result = shifted.result & ~(this->regs[n]);
-
-                    this->regs[d] = result;
-
-                    this->aspr.N = (shifted.result >> 31) & 0b1;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = shifted.result == 0x0;
-                }
-
-                case 0xF: // MVN
-                {
-                    printf("MVN");
-                    uint8_t n, d = instruction & 0b111;
-                    uint8_t m = (instruction >> 3) & 0b111;
-         
-                    Shift_c shifted = this->shift_c(this->regs[m], SRType_LSL, 0, this->aspr.C);                              
-
-                    uint32_t result = ~(shifted.result);
-
-                    this->regs[d] = result;
-
-                    this->aspr.N = (shifted.result >> 31) & 0b1;
-                    this->aspr.C = shifted.carry_out;
-                    this->aspr.Z = shifted.result == 0x0;
-                    break;
-                }
-            }
+            printf("AND\n");
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+            uint32_t Rm = this->regs[m];
+
+            uint8_t shift_n = 0;
+            SRType type = SRType_LSL;    
+            Shift_c shifted = this->shift_c(Rm, type, shift_n, this->aspr.C);                              
+
+            uint32_t result = shifted.result & this->regs[n];
+
+            this->regs[d] = result;
+            this->aspr.N = shifted.result >> 31;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = shifted.result == 0x0;
+            break;
         }
+
+        case 0x1: // EOR
+        {
+            printf("EOR\n");
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+
+            uint32_t Rm = this->regs[m];
+            uint32_t Rn = this->regs[n];
+
+            Shift_c shifted = this->shift_c(Rm, SRType_LSL, 0, aspr.C);
+
+            uint32_t result = Rn ^ shifted.result;
+
+            this->regs[d] = result;
+
+            this->aspr.N = (result >> 31) & 0b1;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = result == 0x0;
+            
+            break;
+        }
+
+        case 0x2: // LSL (register)
+        {
+            printf("LSL (register)\n");
+            const uint8_t n = instruction & 0b111;
+            const uint8_t d = instruction & 0b111;
+            const uint8_t m = (instruction >> 3) & 0b111;
+            const uint8_t shift_n = 0;
+
+            const SRType type = SRType_LSL;
+
+            const uint32_t Rm = this->regs[m];
+            const uint32_t Rn = this->regs[n];
+            const uint32_t shifted = this->shift(Rm, type, shift_n, this->aspr.C);
+
+            const AddCarryResult carry_result = this->addWithCarry(Rn,shifted, this->aspr.C);
+
+            this->regs[d] = carry_result.result;
+
+            this->aspr.N = (carry_result.result >> 31) & 0b1;
+            this->aspr.C = carry_result.carry_out;
+            this->aspr.Z = carry_result.result == 0x0;
+            this->aspr.V = carry_result.overflow;
+            break;
+        }
+
+        case 0x3: // LSR (register)
+        {
+            printf("LSR (register)\n");
+            const uint8_t n = instruction & 0b111;
+            const uint8_t d = instruction & 0b111;
+            const uint8_t m = (instruction >> 3) & 0b111;
+            const uint8_t shift_n = this->regs[m];
+
+            const auto shifted = this->shift_c(this->regs[n], SRType_LSR, shift_n, this->aspr.C);
+
+            this->regs[d] = shifted.result;
+            
+            this->aspr.N = (shifted.result >> 31) & 0b1;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = shifted.result == 0x0;
+        
+            break;
+        }
+
+        case 0x4: // ASR (register)
+        {
+            printf("ASR (register)\n");
+            const uint8_t n = instruction & 0b111;
+            const uint8_t d = instruction & 0b111;
+            const uint8_t m = (instruction >> 3) & 0b111;
+            const uint8_t shift_n = this->regs[m];
+
+            const auto shifted = this->shift_c(this->regs[n], SRType_ASR, shift_n, this->aspr.C);
+
+            this->regs[d] = shifted.result;
+            
+            this->aspr.N = (shifted.result >> 31) & 0b1;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = shifted.result == 0x0;
+            break;
+        }
+
+        case 0x5: // ADC
+        {
+            printf("ADC\n");
+            const uint8_t n = instruction & 0b111;
+            const uint8_t d = instruction & 0b111;
+            const uint8_t m = (instruction >> 3) & 0b111;
+
+            const auto shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C);
+            const auto result = addWithCarry(this->regs[n], shifted, aspr.C);
+
+            this->regs[d] = result.result;
+
+            this->aspr.N = (result.result >> 31) & 0b1;
+            this->aspr.C = result.carry_out;
+            this->aspr.Z = result.result == 0x0;
+            this->aspr.V = result.overflow;
+
+            break;
+        }
+        case 0x6: // SBC
+        {
+            printf("SBC\n");
+            const uint8_t n = instruction & 0b111;
+            const uint8_t d = instruction & 0b111;
+            const uint8_t m = (instruction >> 3) & 0b111;
+            
+            const auto shifted = this->shift(this->regs[m], SRType_LSL, 0, aspr.C);
+
+            const auto result = addWithCarry(this->regs[n], ~shifted , aspr.C);
+
+            this->regs[d] = result.result;
+
+            this->aspr.N = (result.result >> 31) & 0b1;
+            this->aspr.Z = result.result == 0x0;
+            this->aspr.C = result.carry_out;
+            this->aspr.V = result.overflow;
+
+            break;
+        }
+
+        case 0x7: // ROR
+        {
+            printf("ROR\n");
+            uint8_t d, n = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+
+            uint8_t shift_n = this->regs[m] & 0xFF;
+
+            auto result = shift_c(this->regs[n], SRType_ROR, shift_n, aspr.C);
+
+            this->regs[d] = result.result;
+
+            this->aspr.N = (result.result >> 31) & 0b1;
+            this->aspr.Z = result.result == 0x0;
+            this->aspr.C = result.carry_out;
+            break;
+        }
+
+        case 0x8: // TST (no write)
+        {
+            printf("TST\n");
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+
+            const auto shifted = this->shift_c(this->regs[m], SRType_LSL, 0, aspr.C);     
+
+            const uint32_t result = this->regs[n] & shifted.result;
+
+            this->aspr.N = result >> 31;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = result == 0x0;
+            break;
+        }
+
+        case 0x9: // NEG
+        {
+            printf("NEG\n");
+            uint8_t d = instruction & 0b111;
+            uint8_t n = (instruction >> 3) & 0b111;
+
+            auto result = addWithCarry(~(this->regs[n]), 0, true);
+
+            this->regs[d] = result.result;
+
+            this->aspr.N = (result.result >> 31) & 0b1;
+            this->aspr.Z = result.result == 0x0;
+            this->aspr.C = result.carry_out;
+            this->aspr.V = result.overflow;
+            break;
+        }
+
+        case 0xA: // CMP (no write)
+        {
+            printf("CMP (Register)\n");
+
+            uint8_t n = instruction & 0b111;
+            uint8_t d = n;
+            uint8_t m = (instruction >> 3) & 0b111;
+            
+            printf("R%d: %x\n", n, this->regs[n]);
+            printf("R%d: %x\n", m, this->regs[m]);
+
+            const uint32_t shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C); 
+            const auto result = addWithCarry(this->regs[n], ~shifted, 1);
+            
+            this->aspr.N = (result.result >> 31) & 0b1;
+            this->aspr.V = result.overflow;
+            this->aspr.C = result.carry_out;
+            this->aspr.Z = result.result == 0x0;
+            break;
+        }
+
+        case 0xB: // CMN (no write)
+        {
+            printf("CMN (Register)\n");
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+            
+            const uint32_t shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C); 
+
+            const auto result = addWithCarry(this->regs[n], shifted, 0);
+            
+            this->aspr.N = (result.result >> 31) & 0b1;
+            this->aspr.V = result.overflow;
+            this->aspr.C = result.carry_out;
+            this->aspr.Z = result.result == 0x0;
+
+            break;
+        }
+
+        case 0xC: // ORR
+        {
+            printf("ORR (Register)\n");
+            uint8_t n, d = instruction & 0b111;
+            const uint8_t m = (instruction >> 3) & 0b111;
+    
+            const Shift_c shifted = this->shift_c(this->regs[m], SRType_LSL, 0, aspr.C);
+
+            const uint32_t result = this->regs[n] | shifted.result;
+
+            this->regs[d] = result;
+            this->aspr.N = (result >> 31) & 0b1;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = result == 0x0;
+            break;
+        }
+        case 0xD: // MUL
+        {
+            printf("MUL\n");
+
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+
+            uint32_t operand1 = this->regs[n];
+            uint32_t operand2 = this->regs[m];
+
+            uint64_t result = operand2 * operand1;
+
+            this->regs[d] = (uint32_t) result;
+
+            this->aspr.N = result >> 31;
+
+            this->aspr.Z = (uint32_t) result == 0;
+            break;
+        }
+
+        case 0xE: // BIC
+        {
+            printf("BIC\n");
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+    
+            Shift_c shifted = this->shift_c(this->regs[m], SRType_LSL, 0, this->aspr.C);                              
+
+            uint32_t result = shifted.result & ~(this->regs[n]);
+
+            this->regs[d] = result;
+
+            this->aspr.N = (shifted.result >> 31) & 0b1;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = shifted.result == 0x0;
+        }
+
+        case 0xF: // MVN
+        {
+            printf("MVN");
+            uint8_t n, d = instruction & 0b111;
+            uint8_t m = (instruction >> 3) & 0b111;
+    
+            Shift_c shifted = this->shift_c(this->regs[m], SRType_LSL, 0, this->aspr.C);                              
+
+            uint32_t result = ~(shifted.result);
+
+            this->regs[d] = result;
+
+            this->aspr.N = (shifted.result >> 31) & 0b1;
+            this->aspr.C = shifted.carry_out;
+            this->aspr.Z = shifted.result == 0x0;
+            break;
+        }
+    }
+}
 
 void Cpu::handleLoadStoreHalf(uint16_t instr) 
 {
@@ -848,17 +969,15 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
     {
         case 0b00: // STR (word)
         {
+            
+            printf("STR (IMMEDIATE)\n");
             uint32_t imm32 = (uint32_t)(imm5 << 2);
-
-            bool index = true;
-            bool add = true;
-            bool wback = false;
-
-            uint32_t Rn = this->regs[n];
-
-            uint32_t offset_addr = add ? Rn + imm32 : Rn - imm32;
-
-            uint32_t address = index  ? offset_addr : Rn;
+            uint32_t offset_addr = this->regs[n] + imm32;
+            uint32_t address = offset_addr;
+            
+            printf("Rn = r%d = 0x%08x\n", n, regs[n]);
+            printf("Rt = r%d = 0x%08x\n", t, regs[t]);
+            printf("Address = 0x%08x\n", address);
 
             write32(address, this->regs[t]);
 
@@ -867,25 +986,29 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
 
         case 0b01: // LDR (word)
         {
-            uint32_t imm32 = (uint32_t)(imm5 << 2);
 
-            bool index = true;
-            bool add = true;
-            bool wback = false;
+            printf("LDR (IMMEDIATE)\n");
 
-            uint32_t Rn = this->regs[n];
+            uint32_t imm32 = imm5 << 2;
 
-            uint32_t offset_addr = add ? Rn + imm32 : Rn - imm32;
+            uint32_t address = regs[n] + imm32;
 
-            uint32_t address = index  ? offset_addr : Rn;
+            printf("Rn = r%d = 0x%08x\n", n, regs[n]);
+            printf("Rt = r%d = 0x%08x\n", t, regs[t]);
+            printf("Address = 0x%08x\n", address);
 
-            this->regs[t] = read32(address);
+            uint32_t value = read32v2(address);
+
+            printf("Loaded value = 0x%08x\n", value);
+
+            regs[t] = value;
 
             break;
         }
 
         case 0b10: // STRB
         {
+            printf("STRB (IMMEDIATE)\n");
             uint32_t imm32 = (uint32_t)(imm5 << 2);
 
             bool index = true;
@@ -905,6 +1028,7 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
 
         case 0b11: // LDRB
         {
+            printf("LDRB (IMMEDIATE)\n");
             uint32_t imm32 = (uint32_t)(imm5 << 2);
 
             bool index = true;
@@ -926,15 +1050,45 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
 
 void Cpu::handleLDRLiteral(uint16_t instruction)
 {
+
+    printf("LDR Literal\n");
     uint8_t t = (instruction >> 8) & 0b111;
     uint8_t imm8 = (instruction) & 0xFF;
     uint32_t imm32 = (uint32_t)(imm8 << 2); 
-    uint32_t base = this->regs[15] & ~0x3;
-    bool add = true;
+    uint32_t base = (this->regs[15] + 4) & ~0x3;
+    uint32_t address = base + imm32;
 
-    uint32_t address = add ? base + imm32 : base - imm32;
+    printf("imm: %d\n", imm32);
+    printf("dest reg: %x\n", t);
+    printf("Address %x\n", imm32 + base);
 
-    this->regs[t] = read32(address);
+    this->regs[t] = read32v2(address);
+}
+
+void Cpu::handleShiftImmediate(uint16_t instr)
+{
+    printf("LSL (Immediate)\n");
+    uint8_t m = (instr >> 3) & 0x7;
+    uint8_t d = (instr) & 0x7;
+    uint8_t  imm5 = (instr >> 6) & 0b11111;
+
+
+    printf("imm5: %d\n", imm5);
+    if (imm5 == 0x0)
+    {
+        printf("SEE MOV\n");
+        // See MOV
+    }
+    auto result = decodeImmShift(0b00, imm5);
+
+    auto shifted = shift_c(this->regs[m], SRType_LSL, result.n, aspr.C);
+    this->regs[d] = shifted.result;
+
+    this->aspr.N = (shifted.result >> 31) & 0b1;
+    this->aspr.C = shifted.carry_out;
+    this->aspr.Z = shifted.result == 0x0;
+
+    this->regs[15] += 2;
 }
 
 std::pair<uint32_t, bool> Cpu::LSL_C(uint32_t x, int shift)
@@ -1011,6 +1165,40 @@ void Cpu::BXWritePC(uint32_t address) {
     // to be implemented
 }
 
+uint32_t Cpu::read32v2(uint32_t address) const
+{
+    if (address < RAM_BASE)
+    {        address = address - FLASH_BASE;
+        uint32_t data = this->flash[address] |
+            (this->flash[address + 1] << 8) |
+            (this->flash[address + 2] << 16) |
+            (this->flash[address + 3] << 24);
+
+
+        printf("Reading: Flash\n");
+        printf("Reading: Flash Address: %d\n", address);
+
+
+
+         printf("FLASH DATA: %x\n", data);   
+        return data;
+    }
+    else
+    {
+        printf("Reading: RAM\n");
+
+        address = address - RAM_BASE;
+
+        printf("address - RAM_BASE: %x\n", address);
+        uint32_t data = this->ram[address] |
+            (this->ram[address + 1] << 8) |
+            (this->ram[address + 2] << 16) |
+            (this->ram[address + 3] << 24);
+
+        return data;
+    }
+}
+
 void Cpu::handleMovCmpAddSub(uint16_t instr)
 {
     uint8_t op  = (instr >> 11) & 0b11;
@@ -1028,6 +1216,8 @@ void Cpu::handleMovCmpAddSub(uint16_t instr)
             aspr.N = (imm32 >> 31) & 0b1;
             // aspr.C = 
             aspr.Z = imm32 == 0;
+
+            printf("R%d: %x\n", d, this->regs[d]);
             break;
         }
 
@@ -1146,10 +1336,6 @@ void Cpu::handleMisc(uint16_t instr)
             }
 
             this->regs[13] -= (4 * std::bitset<32>(registers).count());
-
-        
-            // PUSH
-            // tobe implemented
         }
         return;
     }
@@ -1277,13 +1463,14 @@ void Cpu::handleAddr(uint16_t instr)
         bool add = true;
         // ADR
         uint32_t imm32 = ((uint32_t) imm8) << 2;
-        uint32_t result = this->regs[15] & ~0x3;
+        uint32_t result = (this->regs[15] + 4) & ~0x3;
         this->regs[d] = result;
     }
 }
 
 void Cpu::handleLoadStoreReg(uint16_t instr)
 {
+    printf("HANDLE STORE REG\n");
     uint8_t op = (instr >> 9) & 0x7;   // L/B/H combo
     uint8_t m = (instr >> 6) & 0x7;
     uint8_t n = (instr >> 3) & 0x7;
@@ -1345,6 +1532,8 @@ void Cpu::handleLoadStoreReg(uint16_t instr)
         }
         case 0b100: // LDR
         {
+
+            printf("LDR (Register)\n");
             bool index = true;
             bool add = true;
             bool wback = false;
@@ -1540,51 +1729,159 @@ void Cpu::handleMultiple(uint16_t instr)
 
         if (wback)
         {
+            registers[n] = this->regs[n] + (4 * std::bitset<32>(register_list).count());
             this->regs[n] = this->regs[n] + (4 * std::bitset<32>(register_list).count());
         }
     }
 }
 
+void Cpu::handleCondBranch(uint16_t instr)
+{
+    printf("HAndle cond\n");
+    uint8_t cond = (instr >> 8 ) & 0xF;
+    uint8_t imm8 = (instr & 0xFF);
+
+    if (cond == 0b1110)
+    {
+
+    }
+    else if (cond == 0b1111)
+    {
+
+    }
+
+    int32_t imm32 = sign_extend(imm8 << 1, 9);
+
+    if (conditionPassed(cond))
+    {
+        // printf("imm32: %d\n", (this->regs[15] + imm32) & ~1);
+
+        regs[15] = (regs[15] + 4 + imm32) & ~1;
+    }
+    else
+    {
+        this->regs[15] += 2;
+    }
+}
+
+void Cpu::handleUncondBranch(uint16_t instr)
+{
+
+    printf("B (Branch)\n");
+    uint32_t imm11 = instr & 0x7FF;
+
+    int32_t imm32 = sign_extend(imm11 << 1, 12);
+
+    uint32_t next_pc = this->regs[15] + 4;
+
+    this->regs[15] = next_pc + imm32;
+}
+
 void Cpu::decode(void)
 {
-    printf("PC: %d\n", this->regs[15]);
+    // printf("PC: %d\n", this->regs[15]);
     uint32_t instruction = this->fetch();
 
 
     uint8_t format_id = (instruction >> 11) & 0x1F;
     
-    std::cout << "Thumb mode:" << std::bitset<5>(format_id) << std::endl;
+    std::cout << "Instruction:" << std::hex << (uint16_t) instruction << std::endl;
+    // std::cout << "Thumb mode:" << std::bitset<5>(format_id) << std::endl;
+    
+    // return;
+    // if ()
 
     if (is32bitInstruction(format_id))
     {
+         std::cout << "Intrusction:" << std::bitset<32>(instruction) << std::endl;
         switch (format_id)
         {
             case 0b11101:
+
             // BL
             case 0b11110:
             {
-                bit tenth = instruction & (0b1 << 10);
+                // 1111 1000 0001 0000       1111 0000 0000 0000
 
-                uint8_t nine_to_five = ((instruction >> 0xFFFF) >> 5) & 0b11111; 
+                uint8_t op1 = (instruction >> 20) & 0x7F;
+                uint8_t op2 = (instruction >> 12) & 0b111;
 
-                uint16_t imm11 = instruction & 0b11111111111;
-                uint16_t imm10 = (instruction >> 0xFF) & 0b1111111111;
+                // MSR
+                if ((op1 & 0b1111110) == 0b0111000 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
+                {
 
-                bit S = (instruction >> 0xFF) & (0b1 << 10);
-                bit J2 = (instruction) &  (0b1 << 11);
-                bit J1 =  (instruction) &  (0b1 << 13);
+                }
+                else if ((op1 & 0b1111111) == 0b0111011 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
+                {
+
+                }
+                else if ((op1 & 0b1111110) == 0b0111110 &&  ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
+                {
+
+                }
+                else if ((op1 & 0b1111111) == 0b1111111 && op2 == 0b010)
+                {
+                    // undefined
+                }
+                else if ( ((op2 & 0b001) | (op2 & 0b100)) == 0b101)
+                {
+
+                    printf("BRANCH AND LINK\n");
+                    // Branch and Link
+                    uint16_t first  = instruction & 0xFFFF;
+                    uint16_t second = instruction >> 16;
+
+                    bool S  = (first >> 10) & 1;
+
+                    uint16_t imm10 = first & 0x03FF;
+
+                    bool J1 = (second >> 13) & 1;
+                    bool J2 = (second >> 11) & 1;
+
+                    uint16_t imm11 = second & 0x07FF;
+
+                    bool I1 = !(J1 ^ S);
+                    bool I2 = !(J2 ^ S);
+
+                    uint32_t imm25 =
+                        (S  << 24) |
+                        (I1 << 23) |
+                        (I2 << 22) |
+                        (imm10 << 12) |
+                        (imm11 << 1);
+
+                    int32_t  imm32 = sign_extend(imm25, 25);
+
+                    printf("%d\n", imm32);
+                    // uint32_t next_instr_addr = this->regs[15] + 4;
+                    uint32_t next = regs[15] + 4;
+
+                    regs[14] = next | 1;
+
+                    regs[15] = next + imm32;
+                }
+
+                // bit tenth = instruction & (0b1 << 10);
+
+                // uint8_t nine_to_five = ((instruction >> 0xFFFF) >> 5) & 0b11111; 
+
+                
+
+                // bit S = (instruction >> 0xFF) & (0b1 << 10);
+                // bit J2 = (instruction) &  (0b1 << 11);
+                // bit J1 =  (instruction) &  (0b1 << 13);
 
 
-                bit I1 = ~(J1 ^ S);
-                bit I2 = ~(J2 ^ S);
+                // bit I1 = ~(J1 ^ S);
+                // bit I2 = ~(J2 ^ S);
 
-                //  ...... .......
+                // //  ...... .......
 
-                uint32_t imm32 =  (S << 24) | (I2 << 23) | (I1 << 22) | (imm10 << 12 ) | (imm11 << 1);
+                // uint32_t imm32 =  (S << 24) | (I2 << 23) | (I1 << 22) | (imm10 << 12 ) | (imm11 << 1);
 
-                uint32_t next_instruction_addr = this->regs[13];
-                this->regs[14] = next_instruction_addr | 1;
-                this->regs[13] += imm32;
+                // uint32_t next_instruction_addr = this->regs[13];
+                // this->regs[14] = next_instruction_addr | 1;
+                // this->regs[13] += imm32;
 
                 break;
 
@@ -1595,28 +1892,39 @@ void Cpu::decode(void)
                 break;
 
         }
-        this->regs[15] += 4;
+        // this->regs[15] += 4;
     }
     else
     {
         std::cout << "Intrusction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
-        
+        std::cout << "Intrusction:" << std::hex << ((uint16_t)instruction) << std::endl;
+    
         InstrClass instructionClass = classify(instruction);
         
+
+        if ((uint16_t) (instruction) == 0x222a)
+        {
+            printf("FUCKU");
+            while(1);
+        }
+
         std::cout << "Classified" << std::endl;
-std::cout << static_cast<int>(instructionClass) << std::endl;
+
+        std::cout << static_cast<int>(instructionClass) << std::endl;
         switch (instructionClass)
         {
             case InstrClass::SHIFT_IMM:
+                handleShiftImmediate(instruction);
                 std::cout << "SHIFT_IMM\n";
                 break;
 
             case InstrClass::ADD_SUB:
+                handleAddSub(instruction);
                 std::cout << "ADD_SUB\n";
                 break;
 
             case InstrClass::MOV_CMP_ADD_SUB:
-            std::cout << "MOV_CMP_ADD_SUB\n";
+                std::cout << "MOV_CMP_ADD_SUB\n";
                 handleMovCmpAddSub(instruction);
                 this->regs[15] += 2;
                 
@@ -1625,7 +1933,7 @@ std::cout << static_cast<int>(instructionClass) << std::endl;
             case InstrClass::ALU:
 
                 std::cout << "ALU\n";
-                // ALUinstr(instruction);
+                ALUinstr(instruction);
                 this->regs[15] += 2;
                 break;
 
@@ -1683,6 +1991,7 @@ std::cout << static_cast<int>(instructionClass) << std::endl;
                 break;
 
             case InstrClass::COND_BRANCH:
+                handleCondBranch(instruction);
                 std::cout << "COND_BRANCH\n";
                 break;
 
@@ -1691,6 +2000,7 @@ std::cout << static_cast<int>(instructionClass) << std::endl;
                 break;
 
             case InstrClass::UNCOND_BRANCH:
+                handleUncondBranch(instruction);
                 std::cout << "UNCOND_BRANCH\n";
                 break;
 
@@ -1700,7 +2010,7 @@ std::cout << static_cast<int>(instructionClass) << std::endl;
                 break;
         }
 
-        this->print_state();
+        // this->print_state();
 
         
     }
