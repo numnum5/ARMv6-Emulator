@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <string>
 #include <iostream>
 
-int compile(std::string& filename);
+int compile(const std::string& filename);

@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "../emulator"
+  "../emulator.pdb"
   "CMakeFiles/emulator.dir/src/compiler.cpp.o"
   "CMakeFiles/emulator.dir/src/compiler.cpp.o.d"
   "CMakeFiles/emulator.dir/src/cpu.cpp.o"
@@ -9,8 +11,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/emulator.dir/src/main.cpp.o.d"
   "CMakeFiles/emulator.dir/src/registers.cpp.o"
   "CMakeFiles/emulator.dir/src/registers.cpp.o.d"
-  "emulator"
-  "emulator.pdb"
 )
 
 # Per-language clean rules from dependency scanning.

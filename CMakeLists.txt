@@ -14,3 +14,7 @@ target_include_directories(emulator
     PRIVATE
         ${CMAKE_SOURCE_DIR}/include
 )
+
+set_target_properties(emulator PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}
+)

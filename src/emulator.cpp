@@ -1,28 +1,15 @@
 #include "emulator.hpp"
 
 void Emulator::startCpu(void)
-
 {
 
-    printf("%d\n", cpu.flash.size());
+    std::cout << "RUNNING CODE OUTPUT:" << std::endl <<  std::endl;
 
-    // for(uint32_t i = 0; i < 158; i+=2)
-    // {
-
-    //     printf("pc: %d\n", i);
-    //     uint16_t data = cpu.flash[i] | cpu.flash[i+1] << 8;
-    //     printf("instruction: %x\n", data);
-    // }
-
-
-    uint16_t data = cpu.flash[152] | cpu.flash[153] << 8;
-        printf("instruction: %x\n", data);
-    // // printf("%x\n", cpu.read32v2(0x52));
-    for (int i = 0 ; i < 36; i++)
+    // for (int i = 0 ; i < 50; i++)
+    for (;;)
     {
         cpu.decode();
     }
-
 
     cpu.print_state();
 }
@@ -134,8 +121,6 @@ void Emulator::load_elf(const std::string& path)
         if (!file)
             throw std::runtime_error("Failed reading segment data");
 
-
-        // printf("ADA\n");
         write_block(addr, buffer.data(), phdr.p_filesz);
         //Zero-fill (.bss)
         if (phdr.p_memsz > phdr.p_filesz)
@@ -147,22 +132,9 @@ void Emulator::load_elf(const std::string& path)
         file.seekg(current);
     }
 
-
-    
-
-    std::cout << "Cpu memory[0]: " << std::hex << cpu.read32Flash(0x0) << std::endl;
-    
-    std::cout << "Cpu memory[0x4]: " << std::hex  << cpu.read32Flash(0x4) << std::endl;
-
     cpu.regs[13] = cpu.read32Flash(0x0);
-
     cpu.regs[15] = cpu.read32Flash(0x4) & ~1;
 
-
-
-    // auto instr = cpu.fetch();
-
-    std::cout << "Initial instruciton: 0x" << std::hex << cpu.regs[13] << "\n";
     std::cout << "Initial SP: 0x" << std::hex << cpu.regs[13] << "\n";
     std::cout << "Reset PC : 0x" << std::hex << cpu.regs[15] << "\n";
 }

@@ -90,6 +90,9 @@ class Cpu
         // uint8_t ram[0x1000];
         ASPR aspr;
         EPSR espr;
+        uint32_t xpsr;
+        uint32_t msp;
+        uint32_t psp;
 
         Cpu(size_t ram_size, size_t flash_size);
 
@@ -117,7 +120,7 @@ class Cpu
 
         bool inITBlock(void);
         bool is32bitInstruction(uint8_t thumb_mode);
-        void ALUinstr(uint16_t instruction);
+        void HandleALUinstr(uint16_t instruction);
         void handleLoadStoreHalf(uint16_t instr);
         void handleLoadStoreImm(uint16_t instr);
         void handleLDRLiteral(uint16_t instruction);

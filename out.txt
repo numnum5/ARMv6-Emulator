@@ -1,0 +1,10 @@
+Entry point: 0x11
+addr=00000000 filesz=108 memsz=108
+Loading segment 0 addr=0x0 filesz=264 memsz=264
+RR
+flash
+Initial SP: 0x20001000
+Reset PC : 0x10
+RUNNING CODE OUTPUT:
+
+HI FROM FIRMWARE

@@ -98,19 +98,11 @@ uint32_t Cpu::read32(uint32_t address) const
 
 void Cpu::write32(uint32_t address, uint32_t value)
 {
-    if (address == 0x20000ff0)
-    {
-
-        printf("WRITING TO THIS VALUE WTF: %x\n", value);
-        // while(1);
-    }
-
     if(address == UART_DR)
     {
         printf("%c", value & 0xFF);
+        
         fflush(stdout);
-
-        // while(1);
         return;
     }
 
@@ -119,13 +111,6 @@ void Cpu::write32(uint32_t address, uint32_t value)
     this->ram[address + 1] = (value >> 8) & 0xFF;
     this->ram[address + 2] = (value >> 16) & 0xFF;
     this->ram[address + 3] = (value >> 24) & 0xFF;
- 
-
-    printf("value after writing: %x\n", this->read32v2(0x20000ff0));
-    // this->ram[address] = value & 0xFF;
-    // this->ram[address + 1] = (value >> 0xFF) & 0xFF;
-    // this->ram[address + 2] = (value >> 0xFFFF) & 0xFF;
-    // this->ram[address + 3] = (value >> 0xFFFFFF) & 0xFF;
 }
 
 void Cpu::write16(uint32_t address, uint16_t value)
@@ -134,7 +119,7 @@ void Cpu::write16(uint32_t address, uint16_t value)
     printf("write16(): address: %x\n", address);
     address = address - RAM_BASE;
     this->ram[address] = value & 0xFF;
-    this->ram[address + 1] = (value >> 0xFF) & 0xFF;
+    this->ram[address + 1] = (value >> 8) & 0xFF;
 }
 
 void Cpu::write8(uint32_t address, uint8_t value)
@@ -174,7 +159,6 @@ InstrClass Cpu::classify(uint16_t instr)
 
     if ((instr & 0b1111110000000000) == 0b0100000000000000) 
     {
-        printf("ALU\n");
         return InstrClass::ALU;              // 010000 xxxxxx xxxx
     }
 
@@ -425,7 +409,7 @@ uint32_t Cpu::fetch(void) const
     uint32_t pc = this->regs[15];
 
 
-    printf("pc: %d\n", pc);
+    // printf("pc: %d\n", pc);
     // uint32_t instr = this->memory[pc] |
     //     (this->memory[pc + 1] << 8) |
     //     (this->memory[pc + 2] << 16) |
@@ -587,9 +571,9 @@ bool Cpu::is32bitInstruction(uint8_t thumb_mode)
     return false;
 }
 
-void Cpu::ALUinstr(uint16_t instruction)
+void Cpu::HandleALUinstr(uint16_t instruction)
 {
-    printf("handle ALU\n");
+    fprintf(stderr, "handle ALU\n");
     uint8_t op = (instruction >> 6) & 0xF;
     uint8_t rm = (instruction >> 3) & 0x7;
     uint8_t rd = instruction & 0x7;
@@ -600,10 +584,10 @@ void Cpu::ALUinstr(uint16_t instruction)
 
     switch (op)
     {
-            case 0x0: // AND
+        case 0x0: // AND
         {
 
-            printf("AND\n");
+            fprintf(stderr, "AND\n");
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
             uint32_t Rm = this->regs[m];
@@ -623,7 +607,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x1: // EOR
         {
-            printf("EOR\n");
+            fprintf(stderr, "EOR\n");
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
 
@@ -645,7 +629,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x2: // LSL (register)
         {
-            printf("LSL (register)\n");
+            fprintf(stderr, "LSL (register)\n");
             const uint8_t n = instruction & 0b111;
             const uint8_t d = instruction & 0b111;
             const uint8_t m = (instruction >> 3) & 0b111;
@@ -670,7 +654,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x3: // LSR (register)
         {
-            printf("LSR (register)\n");
+            fprintf(stderr, "LSR (register)\n");
             const uint8_t n = instruction & 0b111;
             const uint8_t d = instruction & 0b111;
             const uint8_t m = (instruction >> 3) & 0b111;
@@ -689,7 +673,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x4: // ASR (register)
         {
-            printf("ASR (register)\n");
+            fprintf(stderr, "ASR (register)\n");
             const uint8_t n = instruction & 0b111;
             const uint8_t d = instruction & 0b111;
             const uint8_t m = (instruction >> 3) & 0b111;
@@ -707,7 +691,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x5: // ADC
         {
-            printf("ADC\n");
+            fprintf(stderr, "ADC\n");
             const uint8_t n = instruction & 0b111;
             const uint8_t d = instruction & 0b111;
             const uint8_t m = (instruction >> 3) & 0b111;
@@ -726,7 +710,7 @@ void Cpu::ALUinstr(uint16_t instruction)
         }
         case 0x6: // SBC
         {
-            printf("SBC\n");
+            fprintf(stderr, "SBC\n");
             const uint8_t n = instruction & 0b111;
             const uint8_t d = instruction & 0b111;
             const uint8_t m = (instruction >> 3) & 0b111;
@@ -747,7 +731,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x7: // ROR
         {
-            printf("ROR\n");
+            fprintf(stderr, "ROR\n");
             uint8_t d, n = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
 
@@ -765,7 +749,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x8: // TST (no write)
         {
-            printf("TST\n");
+            fprintf(stderr, "TST\n");
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
 
@@ -781,7 +765,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0x9: // NEG
         {
-            printf("NEG\n");
+            fprintf(stderr, "NEG\n");
             uint8_t d = instruction & 0b111;
             uint8_t n = (instruction >> 3) & 0b111;
 
@@ -798,14 +782,14 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0xA: // CMP (no write)
         {
-            printf("CMP (Register)\n");
+            fprintf(stderr, "CMP (Register)\n");
 
             uint8_t n = instruction & 0b111;
             uint8_t d = n;
             uint8_t m = (instruction >> 3) & 0b111;
             
-            printf("R%d: %x\n", n, this->regs[n]);
-            printf("R%d: %x\n", m, this->regs[m]);
+            fprintf(stderr, "R%d: %x\n", n, this->regs[n]);
+            fprintf(stderr, "R%d: %x\n", m, this->regs[m]);
 
             const uint32_t shifted = this->shift(this->regs[m], SRType_LSL, 0, this->aspr.C); 
             const auto result = addWithCarry(this->regs[n], ~shifted, 1);
@@ -819,7 +803,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0xB: // CMN (no write)
         {
-            printf("CMN (Register)\n");
+            fprintf(stderr, "CMN (Register)\n");
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
             
@@ -837,7 +821,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0xC: // ORR
         {
-            printf("ORR (Register)\n");
+            fprintf(stderr, "ORR (Register)\n");
             uint8_t n, d = instruction & 0b111;
             const uint8_t m = (instruction >> 3) & 0b111;
     
@@ -853,7 +837,7 @@ void Cpu::ALUinstr(uint16_t instruction)
         }
         case 0xD: // MUL
         {
-            printf("MUL\n");
+            fprintf(stderr, "MUL\n");
 
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
@@ -873,7 +857,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0xE: // BIC
         {
-            printf("BIC\n");
+            fprintf(stderr, "BIC\n");
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
     
@@ -890,7 +874,7 @@ void Cpu::ALUinstr(uint16_t instruction)
 
         case 0xF: // MVN
         {
-            printf("MVN");
+            fprintf(stderr, "MVN");
             uint8_t n, d = instruction & 0b111;
             uint8_t m = (instruction >> 3) & 0b111;
     
@@ -915,12 +899,8 @@ void Cpu::handleLoadStoreHalf(uint16_t instr)
     uint8_t n   = (instr >> 3) & 0x7;
     uint8_t t   = instr & 0x7;
 
-    
-
     if (L) 
     {
-
-        printf("hello2\n");
         uint32_t imm32 = (uint32_t)(imm5 << 2);
 
         bool index = true;
@@ -937,8 +917,6 @@ void Cpu::handleLoadStoreHalf(uint16_t instr)
     } 
     else 
     {
-
-        printf("Hello\n");
         uint32_t imm32 = (uint32_t)(imm5 << 2);
 
         bool index = true;
@@ -951,7 +929,7 @@ void Cpu::handleLoadStoreHalf(uint16_t instr)
 
         uint32_t address = index  ? offset_addr : Rn;
 
-        printf("addr: %x\n", address);
+        fprintf(stderr, "addr: %x\n", address);
         write16(address, (uint16_t) this->regs[t]);
     }
 }
@@ -970,14 +948,15 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
         case 0b00: // STR (word)
         {
             
-            printf("STR (IMMEDIATE)\n");
+            fprintf(stderr, "STR (IMMEDIATE)\n");
             uint32_t imm32 = (uint32_t)(imm5 << 2);
             uint32_t offset_addr = this->regs[n] + imm32;
             uint32_t address = offset_addr;
             
-            printf("Rn = r%d = 0x%08x\n", n, regs[n]);
-            printf("Rt = r%d = 0x%08x\n", t, regs[t]);
-            printf("Address = 0x%08x\n", address);
+
+            fprintf(stderr,"Rn = r%d = 0x%08x\n", n, regs[n]);
+            fprintf(stderr,"Rt = r%d = 0x%08x\n", t, regs[t]);
+            fprintf(stderr,"Address = 0x%08x\n", address);
 
             write32(address, this->regs[t]);
 
@@ -987,19 +966,19 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
         case 0b01: // LDR (word)
         {
 
-            printf("LDR (IMMEDIATE)\n");
+            fprintf(stderr,"LDR (IMMEDIATE)\n");
 
             uint32_t imm32 = imm5 << 2;
 
             uint32_t address = regs[n] + imm32;
 
-            printf("Rn = r%d = 0x%08x\n", n, regs[n]);
-            printf("Rt = r%d = 0x%08x\n", t, regs[t]);
-            printf("Address = 0x%08x\n", address);
+            fprintf(stderr,"Rn = r%d = 0x%08x\n", n, regs[n]);
+            fprintf(stderr,"Rt = r%d = 0x%08x\n", t, regs[t]);
+            fprintf(stderr,"Address = 0x%08x\n", address);
 
             uint32_t value = read32v2(address);
 
-            printf("Loaded value = 0x%08x\n", value);
+            fprintf(stderr,"Loaded value = 0x%08x\n", value);
 
             regs[t] = value;
 
@@ -1008,7 +987,7 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
 
         case 0b10: // STRB
         {
-            printf("STRB (IMMEDIATE)\n");
+            fprintf(stderr,"STRB (IMMEDIATE)\n");
             uint32_t imm32 = (uint32_t)(imm5 << 2);
 
             bool index = true;
@@ -1028,7 +1007,7 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
 
         case 0b11: // LDRB
         {
-            printf("LDRB (IMMEDIATE)\n");
+           fprintf(stderr,"LDRB (IMMEDIATE)\n");
             uint32_t imm32 = (uint32_t)(imm5 << 2);
 
             bool index = true;
@@ -1050,33 +1029,32 @@ void Cpu::handleLoadStoreImm(uint16_t instr)
 
 void Cpu::handleLDRLiteral(uint16_t instruction)
 {
-
-    printf("LDR Literal\n");
+   fprintf(stderr,"LDR Literal\n");
     uint8_t t = (instruction >> 8) & 0b111;
     uint8_t imm8 = (instruction) & 0xFF;
     uint32_t imm32 = (uint32_t)(imm8 << 2); 
     uint32_t base = (this->regs[15] + 4) & ~0x3;
     uint32_t address = base + imm32;
 
-    printf("imm: %d\n", imm32);
-    printf("dest reg: %x\n", t);
-    printf("Address %x\n", imm32 + base);
+    fprintf(stderr,"imm: %d\n", imm32);
+    fprintf(stderr,"dest reg: %x\n", t);
+    fprintf(stderr,"Address %x\n", imm32 + base);
 
     this->regs[t] = read32v2(address);
 }
 
 void Cpu::handleShiftImmediate(uint16_t instr)
 {
-    printf("LSL (Immediate)\n");
+    fprintf(stderr,"LSL (Immediate)\n");
     uint8_t m = (instr >> 3) & 0x7;
     uint8_t d = (instr) & 0x7;
     uint8_t  imm5 = (instr >> 6) & 0b11111;
 
 
-    printf("imm5: %d\n", imm5);
+    fprintf(stderr, "imm5: %d\n", imm5);
     if (imm5 == 0x0)
     {
-        printf("SEE MOV\n");
+        fprintf(stderr, "SEE MOV\n");
         // See MOV
     }
     auto result = decodeImmShift(0b00, imm5);
@@ -1174,22 +1152,19 @@ uint32_t Cpu::read32v2(uint32_t address) const
             (this->flash[address + 2] << 16) |
             (this->flash[address + 3] << 24);
 
-
-        printf("Reading: Flash\n");
-        printf("Reading: Flash Address: %d\n", address);
-
-
-
-         printf("FLASH DATA: %x\n", data);   
+        fprintf(stderr,"Reading: Flash\n");
+        fprintf(stderr,"Reading: Flash Address: %d\n", address);
+        fprintf(stderr,"FLASH DATA: %x\n", data);   
+        
         return data;
     }
     else
     {
-        printf("Reading: RAM\n");
+        fprintf(stderr, "Reading: RAM\n");
 
         address = address - RAM_BASE;
 
-        printf("address - RAM_BASE: %x\n", address);
+        fprintf(stderr, "address - RAM_BASE: %x\n", address);
         uint32_t data = this->ram[address] |
             (this->ram[address + 1] << 8) |
             (this->ram[address + 2] << 16) |
@@ -1209,7 +1184,7 @@ void Cpu::handleMovCmpAddSub(uint16_t instr)
     {
         case 0b00: // MOVS Rd, #imm
         {
-            printf("MOV (imm)\n");
+            fprintf(stderr, "MOV (imm)\n");
             uint32_t imm32 = (uint32_t) imm8;
             this->regs[d] = imm32;
 
@@ -1217,14 +1192,14 @@ void Cpu::handleMovCmpAddSub(uint16_t instr)
             // aspr.C = 
             aspr.Z = imm32 == 0;
 
-            printf("R%d: %x\n", d, this->regs[d]);
+            fprintf(stderr, "R%d: %x\n", d, this->regs[d]);
             break;
         }
 
         case 0b01: // CMP Rd, #imm
         {
 
-            printf("CMP (imm)\n");
+            fprintf(stderr, "CMP (imm)\n");
             uint32_t imm32 = (uint32_t) imm8;
             // d == n here
             const auto result = addWithCarry(this->regs[d], ~imm32, 1);
@@ -1263,13 +1238,13 @@ void Cpu::handleMisc(uint16_t instr)
 
         if (S)
         {
-            printf("SUB\n");
+            fprintf(stderr, "SUB\n");
             const auto result = this->addWithCarry(getSP(), ~imm32, 1);
             this->regs[13] = result.result;
         }
         else
         {
-            printf("ADD\n");
+            fprintf(stderr, "ADD\n");
             const auto result = this->addWithCarry(getSP(), imm32, 0);
             this->regs[13] = result.result;
         }
@@ -1285,7 +1260,7 @@ void Cpu::handleMisc(uint16_t instr)
 
         if (L) 
         {
-            printf("POP\n");
+            fprintf(stderr, "POP\n");
             uint32_t registers = register_list << 7;
 
             if (std::bitset<32>(registers).count() < 1)
@@ -1314,7 +1289,7 @@ void Cpu::handleMisc(uint16_t instr)
         } 
         else 
         {
-            printf("PUSH\n");
+            fprintf(stderr, "PUSH\n");
             bool M = (instr >> 8) & 1; 
 
             //             0 : M : 000 000 : 0000 0000
@@ -1324,7 +1299,7 @@ void Cpu::handleMisc(uint16_t instr)
 
             uint32_t address = getSP() - (4 * std::bitset<32>(registers).count());
 
-            printf("handleMisc(): adddress: %x\n", address);
+            fprintf(stderr, "handleMisc(): adddress: %x\n", address);
 
             for (int i = 0; i < 15; i++)
             {
@@ -1401,10 +1376,11 @@ void Cpu::handleMisc(uint16_t instr)
             {   
                 uint32_t Rm = this->regs[m];
                 
-                uint32_t result = (Rm & 0xFF) << 0xFFFFFF | 
-                ((Rm >> 0xFF) & 0xFF) << 0xFFFF | 
-                ((Rm >> 0xFFFF) & 0xFF) << 0xFF |
-                ((Rm >> 0xFFFFFF) & 0xFF);
+                uint32_t result = 
+                (Rm & 0xFF) << 24 | 
+                ((Rm >> 8) & 0xFF) << 16 | 
+                ((Rm >> 16) & 0xFF) << 8 |
+                ((Rm >> 24) & 0xFF);
 
                 break;
             }
@@ -1470,7 +1446,7 @@ void Cpu::handleAddr(uint16_t instr)
 
 void Cpu::handleLoadStoreReg(uint16_t instr)
 {
-    printf("HANDLE STORE REG\n");
+    fprintf(stderr, "HANDLE STORE REG\n");
     uint8_t op = (instr >> 9) & 0x7;   // L/B/H combo
     uint8_t m = (instr >> 6) & 0x7;
     uint8_t n = (instr >> 3) & 0x7;
@@ -1533,7 +1509,7 @@ void Cpu::handleLoadStoreReg(uint16_t instr)
         case 0b100: // LDR
         {
 
-            printf("LDR (Register)\n");
+            fprintf(stderr, "LDR (Register)\n");
             bool index = true;
             bool add = true;
             bool wback = false;
@@ -1657,7 +1633,7 @@ void Cpu::handleMultiple(uint16_t instr)
 
         if (std::bitset<32>(registers).count() < 1)
         {
-            std::cout << "unpredictable" << std::endl;
+            std::cerr << "unpredictable" << std::endl;
             return;
         }
 
@@ -1683,7 +1659,7 @@ void Cpu::handleMultiple(uint16_t instr)
     {
         if (std::bitset<16>(register_list).count() < 1)
         {
-            std::cout << "unpredictable" << std::endl;
+            std::cerr << "unpredictable" << std::endl;
             return;
         }
 
@@ -1737,7 +1713,7 @@ void Cpu::handleMultiple(uint16_t instr)
 
 void Cpu::handleCondBranch(uint16_t instr)
 {
-    printf("HAndle cond\n");
+    fprintf(stderr, "Handle cond\n");
     uint8_t cond = (instr >> 8 ) & 0xF;
     uint8_t imm8 = (instr & 0xFF);
 
@@ -1754,8 +1730,6 @@ void Cpu::handleCondBranch(uint16_t instr)
 
     if (conditionPassed(cond))
     {
-        // printf("imm32: %d\n", (this->regs[15] + imm32) & ~1);
-
         regs[15] = (regs[15] + 4 + imm32) & ~1;
     }
     else
@@ -1766,8 +1740,7 @@ void Cpu::handleCondBranch(uint16_t instr)
 
 void Cpu::handleUncondBranch(uint16_t instr)
 {
-
-    printf("B (Branch)\n");
+    fprintf(stderr, "B (Branch)\n");
     uint32_t imm11 = instr & 0x7FF;
 
     int32_t imm32 = sign_extend(imm11 << 1, 12);
@@ -1779,21 +1752,14 @@ void Cpu::handleUncondBranch(uint16_t instr)
 
 void Cpu::decode(void)
 {
-    // printf("PC: %d\n", this->regs[15]);
     uint32_t instruction = this->fetch();
-
-
     uint8_t format_id = (instruction >> 11) & 0x1F;
     
-    std::cout << "Instruction:" << std::hex << (uint16_t) instruction << std::endl;
-    // std::cout << "Thumb mode:" << std::bitset<5>(format_id) << std::endl;
+    std::cerr << "Instruction:" << std::hex << (uint16_t) instruction << std::endl;
     
-    // return;
-    // if ()
-
     if (is32bitInstruction(format_id))
     {
-         std::cout << "Intrusction:" << std::bitset<32>(instruction) << std::endl;
+         std::cerr << "Intrusction:" << std::bitset<32>(instruction) << std::endl;
         switch (format_id)
         {
             case 0b11101:
@@ -1806,10 +1772,56 @@ void Cpu::decode(void)
                 uint8_t op1 = (instruction >> 20) & 0x7F;
                 uint8_t op2 = (instruction >> 12) & 0b111;
 
+                uint16_t first  = instruction & 0xFFFF;
+                uint16_t second = instruction >> 16;
                 // MSR
                 if ((op1 & 0b1111110) == 0b0111000 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
                 {
+                    uint8_t d = second & 0x7;
+                    uint8_t sysm = first & 0xFF;
 
+                    switch ((sysm >> 3) & 0x1F)
+                    {
+                        case 0:
+                        {
+                            // APSR
+                            if ((sysm & 0x7) == 0)
+                            {
+                                regs[d] = xpsr;
+                            }
+                            break;
+                        }
+
+                        case 1:
+                        {
+                            switch (sysm & 0x7)
+                            {
+                                case 0:
+                                    regs[d] = msp;
+                                    break;
+
+                                case 1:
+                                    regs[d] = psp;
+                                    break;
+                            }
+                            break;
+                        }
+
+                        case 2:
+                        {
+                            switch (sysm & 0x7)
+                            {
+                                case 0:
+                                    // regs[d] = primask;
+                                    break;
+
+                                case 4:
+                                    // regs[d] = control;
+                                    break;
+                            }
+                            break;
+                        }
+                    }
                 }
                 else if ((op1 & 0b1111111) == 0b0111011 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
                 {
@@ -1826,10 +1838,8 @@ void Cpu::decode(void)
                 else if ( ((op2 & 0b001) | (op2 & 0b100)) == 0b101)
                 {
 
-                    printf("BRANCH AND LINK\n");
+                    fprintf(stderr,"BRANCH AND LINK\n");
                     // Branch and Link
-                    uint16_t first  = instruction & 0xFFFF;
-                    uint16_t second = instruction >> 16;
 
                     bool S  = (first >> 10) & 1;
 
@@ -1852,37 +1862,12 @@ void Cpu::decode(void)
 
                     int32_t  imm32 = sign_extend(imm25, 25);
 
-                    printf("%d\n", imm32);
-                    // uint32_t next_instr_addr = this->regs[15] + 4;
                     uint32_t next = regs[15] + 4;
 
                     regs[14] = next | 1;
 
                     regs[15] = next + imm32;
                 }
-
-                // bit tenth = instruction & (0b1 << 10);
-
-                // uint8_t nine_to_five = ((instruction >> 0xFFFF) >> 5) & 0b11111; 
-
-                
-
-                // bit S = (instruction >> 0xFF) & (0b1 << 10);
-                // bit J2 = (instruction) &  (0b1 << 11);
-                // bit J1 =  (instruction) &  (0b1 << 13);
-
-
-                // bit I1 = ~(J1 ^ S);
-                // bit I2 = ~(J2 ^ S);
-
-                // //  ...... .......
-
-                // uint32_t imm32 =  (S << 24) | (I2 << 23) | (I1 << 22) | (imm10 << 12 ) | (imm11 << 1);
-
-                // uint32_t next_instruction_addr = this->regs[13];
-                // this->regs[14] = next_instruction_addr | 1;
-                // this->regs[13] += imm32;
-
                 break;
 
             }
@@ -1892,79 +1877,69 @@ void Cpu::decode(void)
                 break;
 
         }
-        // this->regs[15] += 4;
     }
     else
     {
-        std::cout << "Intrusction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
-        std::cout << "Intrusction:" << std::hex << ((uint16_t)instruction) << std::endl;
+        std::cerr << "Intrusction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
+        std::cerr << "Intrusction:" << std::hex << ((uint16_t)instruction) << std::endl;
     
         InstrClass instructionClass = classify(instruction);
-        
+    
+        std::cerr << "Classified" << std::endl;
 
-        if ((uint16_t) (instruction) == 0x222a)
-        {
-            printf("FUCKU");
-            while(1);
-        }
-
-        std::cout << "Classified" << std::endl;
-
-        std::cout << static_cast<int>(instructionClass) << std::endl;
+        std::cerr << static_cast<int>(instructionClass) << std::endl;
         switch (instructionClass)
         {
             case InstrClass::SHIFT_IMM:
                 handleShiftImmediate(instruction);
-                std::cout << "SHIFT_IMM\n";
+                std::cerr << "SHIFT_IMM\n";
                 break;
 
             case InstrClass::ADD_SUB:
                 handleAddSub(instruction);
-                std::cout << "ADD_SUB\n";
+                std::cerr << "ADD_SUB\n";
                 break;
 
             case InstrClass::MOV_CMP_ADD_SUB:
-                std::cout << "MOV_CMP_ADD_SUB\n";
                 handleMovCmpAddSub(instruction);
+                std::cerr << "MOV_CMP_ADD_SUB\n";
                 this->regs[15] += 2;
-                
                 break;
 
             case InstrClass::ALU:
-
-                std::cout << "ALU\n";
-                ALUinstr(instruction);
+                HandleALUinstr(instruction);
                 this->regs[15] += 2;
+                std::cerr << "ALU\n";
                 break;
 
             case InstrClass::HI_REG:
                 handleSpecialInstructions(instruction);
                 this->regs[15] += 2;
-                std::cout << "HI_REG\n";
+                std::cerr << "HI_REG\n";
                 break;
 
             case InstrClass::LDR_LITERAL:
-                std::cout << "LDR_LITERAL\n";
+                std::cerr << "LDR_LITERAL\n";
                 handleLDRLiteral(instruction);
                 this->regs[15] += 2;
                 break;
 
             case InstrClass::LOAD_STORE_REG:
                 handleLoadStoreReg(instruction);
+                std::cerr << "LOAD_STORE_REG\n";
                 this->regs[15] += 2;
-                std::cout << "LOAD_STORE_REG\n";
                 break;
 
             case InstrClass::LOAD_STORE_IMM:
                 handleLoadStoreImm(instruction);
                 this->regs[15] += 2;
-                std::cout << "LOAD_STORE_IMM\n";
+                std::cerr << "LOAD_STORE_IMM\n";
                 break;
 
             case InstrClass::LOAD_STORE_HALF:
                 handleLoadStoreHalf(instruction);
                 this->regs[15] += 2;
-                std::cout << "LOAD_STORE_HALF\n";
+                std::cerr << "LOAD_STORE_HALF\n";
                 break;
 
             case InstrClass::SP_REL:
@@ -1973,13 +1948,13 @@ void Cpu::decode(void)
                 break;
 
             case InstrClass::ADDR:
-                std::cout << "ADDR\n";
+                std::cerr << "ADDR\n";
                 handleAddr(instruction);
                 this->regs[15] += 2;
                 break;
 
             case InstrClass::MISC:
-                std::cout << "MISC\n";
+                std::cerr << "MISC\n";
                 handleMisc(instruction);
                 this->regs[15] += 2;
                 break;
@@ -1987,32 +1962,29 @@ void Cpu::decode(void)
             case InstrClass::MULTIPLE:
                 handleMultiple(instruction);
                 this->regs[15] += 2;
-                std::cout << "MULTIPLE\n";
+                std::cerr << "MULTIPLE\n";
                 break;
 
             case InstrClass::COND_BRANCH:
                 handleCondBranch(instruction);
-                std::cout << "COND_BRANCH\n";
+                std::cerr << "COND_BRANCH\n";
                 break;
 
             case InstrClass::SVC:
-                std::cout << "SVC\n";
+                std::cerr << "SVC\n";
                 break;
 
             case InstrClass::UNCOND_BRANCH:
                 handleUncondBranch(instruction);
-                std::cout << "UNCOND_BRANCH\n";
+                std::cerr << "UNCOND_BRANCH\n";
                 break;
 
             case InstrClass::UNKNOWN:
             default:
-                std::cout << "UNKNOWN\n";
+                std::cerr << "UNKNOWN\n";
                 break;
         }
-
-        // this->print_state();
-
-        
+        // this->print_state();        
     }
 }
 
@@ -2021,7 +1993,6 @@ void Cpu::print_state(void) const
 {
     printf("\n--- CPU STATE ---\n");
 
-    // Print General Purpose Registers in a 4x4 Grid
     for(uint8_t i = 0; i < 16; i++)
     {
         printf("r%-2d: 0x%08X    ", i, this->regs[i]);
@@ -2032,8 +2003,6 @@ void Cpu::print_state(void) const
         }
     }
 
-    // Print Application Program Status Register (APSR) Flags
-    // N (Negative), Z (Zero), C (Carry), V (Overflow)
     printf("-----------------\n");
     printf("FLAGS: [ N:%d | Z:%d | C:%d | V:%d ]\n", 
             this->aspr.N, this->aspr.Z, this->aspr.C, this->aspr.V);

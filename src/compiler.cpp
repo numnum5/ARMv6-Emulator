@@ -1,22 +1,18 @@
 #include "compiler.hpp"
 
-int compile(std::string& filename) 
+int compile(const std::string& filename)
 {
-    int status = std::system(
-        "arm-none-eabi-gcc "
-        "-mcpu=cortex-m0 "
-        "-mthumb "
-        "-ffreestanding "
-        "-nostdlib "
-        "../src/elf.c "
-        "-o main.elf"
-    );
-
-    if (status == 0) {
-        std::cout << "Compilation finished\n";
-    } else {
-        std::cerr << "Compilation failed with code: " << status << "\n";
-    }
-
-    return status;
+    std::string command =
+        std::string("arm-none-eabi-gcc ")
+        + "-mcpu=cortex-m0 "
+        + "-mthumb "
+        + "-ffreestanding "
+        + "-nostdlib "
+        + "-T ./elf/linker.ld "
+        + "./elf/setup.c "
+        + "./elf/"
+        + filename
+        + " -o firmware.elf";
+        
+    return std::system(command.c_str());
 }
