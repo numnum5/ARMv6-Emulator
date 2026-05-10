@@ -25,7 +25,6 @@ The emulator:
 
 ```text
 .
-├── build/
 ├── elf/
 │   ├── linker.ld
 │   ├── setup.c // Used for setting up vector tables for ARM based firmware
@@ -42,7 +41,10 @@ The emulator:
 Generate build files:
 
 ```bash
-cmake -B build
+mkdir build
+cd build
+make ..
+cd ..
 cmake --build build
 ```
 
@@ -85,3 +87,8 @@ Redirect stdio output:
 ```bash
 ./emulator main.c > output.txt
 ```
+
+
+# Note
+
+I haven't not yet fully implemented all the instructions, especially instructions involving special registers.
