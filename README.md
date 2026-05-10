@@ -3,7 +3,8 @@
 A simple ARMv6-M (Cortex-M0 Thumb) emulator written in C++.
 
 The emulator:
-- Parses ELF firmware binaries
+- Compiles C source code with vector tables
+- Parses ELF binary for compiled C code
 - Loads FLASH/RAM segments
 - Emulates ARMv6-M Thumb instructions
 - Provides a simple memory-mapped UART device
