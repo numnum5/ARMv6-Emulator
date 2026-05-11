@@ -72,6 +72,12 @@ typedef struct
     bool carry_out;
 } Shift_c;
 
+enum class Mode
+{
+    Thread,
+    Handler
+};
+
 
 class Cpu
 {
@@ -93,10 +99,14 @@ class Cpu
         uint32_t xpsr;
         uint32_t msp;
         uint32_t psp;
+        uint32_t primask;
+        uint32_t control;
+        Mode currentMode;
 
         Cpu(size_t ram_size, size_t flash_size);
 
         uint32_t getSP(void) const;
+        void setPrimaskPM(bool value);
         bool conditionPassed(uint8_t cond) const;
         void write32(uint32_t address, uint32_t value);
         void write16(uint32_t address, uint16_t value);
@@ -107,7 +117,7 @@ class Cpu
         uint32_t read32v2(uint32_t address) const;
         uint32_t read32Flash(uint32_t address) const;
         InstrClass classify(uint16_t instr);
-
+        bool currentModeIsPrivileged(void);
         
         void handleSpecialInstructions(uint16_t instruction);
         uint32_t fetch(void) const;

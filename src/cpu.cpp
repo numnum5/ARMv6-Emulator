@@ -1226,8 +1226,26 @@ void Cpu::handleMovCmpAddSub(uint16_t instr)
     }
 }
 
+void Cpu::setPrimaskPM(bool value)
+{
+    this->primask |= value;
+}
+
 void Cpu::handleMisc(uint16_t instr) 
 {
+    // CPS
+
+    if ((instr & 0b1111111111100000) == 0b1011011001100000) 
+    {
+        fprintf(stderr, "CPS\n");
+
+        bool im = instr & (0b1 << 4);
+
+
+        setPrimaskPM(im);
+
+        return;
+    }
 
     // ---- ADD / SUB SP ----
     if ((instr & 0b1111111100000000) == 0b1011000000000000) 
@@ -1738,6 +1756,11 @@ void Cpu::handleCondBranch(uint16_t instr)
     }
 }
 
+bool Cpu::currentModeIsPrivileged(void)
+{
+    return (this->currentMode == Mode::Handler || (this->control & 0b1) == 0); 
+}
+
 void Cpu::handleUncondBranch(uint16_t instr)
 {
     fprintf(stderr, "B (Branch)\n");
@@ -1785,25 +1808,37 @@ void Cpu::decode(void)
                         case 0:
                         {
                             // APSR
-                            if ((sysm & 0x7) == 0)
+                            if ((sysm & 0b1) == 1)
                             {
-                                regs[d] = xpsr;
+                                regs[d] = this->xpsr & 0xFF;
+                            }
+                            else if ((sysm & (0b1 << 1)) == 1)
+                            {
+                                regs[d] &= ~(1 << 24);
+                            }
+                            else if ((sysm & (0b1 << 2)) == 0)
+                            {
+                                regs[d] = xpsr & 0xF8000000;
                             }
                             break;
                         }
 
                         case 1:
                         {
-                            switch (sysm & 0x7)
+                            if (this->currentModeIsPrivileged())
                             {
-                                case 0:
-                                    regs[d] = msp;
-                                    break;
+                                switch (sysm & 0x7)
+                                {
+                                    case 0:
+                                        regs[d] = msp;
+                                        break;
 
-                                case 1:
-                                    regs[d] = psp;
-                                    break;
+                                    case 1:
+                                        regs[d] = psp;
+                                        break;
+                                }
                             }
+
                             break;
                         }
 
@@ -1812,11 +1847,11 @@ void Cpu::decode(void)
                             switch (sysm & 0x7)
                             {
                                 case 0:
-                                    // regs[d] = primask;
+                                    regs[d] &= ~(currentModeIsPrivileged() ? (primask & 0b1) : 0);
                                     break;
 
                                 case 4:
-                                    // regs[d] = control;
+                                    regs[d] &= ~(control & 0b11);
                                     break;
                             }
                             break;
