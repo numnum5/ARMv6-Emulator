@@ -43,13 +43,15 @@ typedef enum
 
 typedef enum 
 {
-    MSR,
-    MRS,
+    MSR_Instruction,
+    MRS_Instruction,
+    DSB_Instruction,
+    DMB_Instruction,
+    ISB_Instruction,
     UDF,
     BL
 
 } Branch_misc_type;
-
 
 typedef enum 
 {
@@ -61,22 +63,6 @@ typedef enum
 
 } SRType;
 
-constexpr uint8_t PC_INDEX = 15;
-
-
-typedef struct 
-{
-    bit t;
-} EPSR;
-
-typedef struct
-{
-    bit aspr_N;
-    bit apsr_C;
-    bit apsr_Z;
-    bit apsr_V;
-    bit Q;
-} ASPR;
 
 struct AddCarryResult
 {
@@ -85,7 +71,8 @@ struct AddCarryResult
     bool overflow;
 };
 
-typedef struct {
+typedef struct 
+{
     SRType type;
     uint8_t n;
 } DecodeImmShiftResult;
@@ -191,7 +178,6 @@ struct AddSubImmediateInstruction
         identifier = (instruction >> 11) & 0x1F;
     }
 };
-
 
 struct ALUInstruction
 {
@@ -414,8 +400,6 @@ enum InstructionClassThumb2
     BRANCH_MISC
 };
 
-
-
 union Instruction
 {
     struct ShiftImmediateInstruction shiftImmediateInstruction;
@@ -442,7 +426,6 @@ union Instruction
     struct AddSubImmediateInstruction _AddSubImmediateInstruction;
 };
 
-
 typedef struct
 {
     uint32_t result;
@@ -462,20 +445,6 @@ struct Control
     uint32_t reserved : 30;
 };
 
-// struct XPSR
-// {
-//     // IPSR
-//     uint8_t ispr;
-//     // EPSR ICI/IT bits
-//     bool epsr_a;
-//     // Thumb state bit
-//     bool epsr_T;
-//     bool apsr_V;
-//     bool apsr_C;
-//     bool apsr_Z;
-//     bool aspr_N;
-// };
-
 struct XPSR
 {
     uint32_t value;
@@ -487,6 +456,18 @@ struct XPSR
     uint32_t ipsr() const
     {
         return value & 0x3F;
+    }
+
+    uint32_t apsr() const
+    {
+        return (value >> 28) & 0xF;
+    }
+
+    void setNZCVQ(uint32_t v)
+    {
+        // Bits 31:27
+        value &= ~(0x1Fu << 27);
+        value |= (v & 0x1Fu) << 27;
     }
 
     void setIPSR(uint32_t n)
@@ -582,10 +563,94 @@ struct BranchLinkInstruction
     }
 };
 
+struct DSB
+{
+    // first 16-bit halfword
+    uint32_t option : 4;   // bits [10:0]
+    uint32_t reservered : 28;
+
+    DSB() = default;
+    
+    DSB(uint8_t option)
+    {
+        this->option = option;
+        reservered = 0;
+    }
+};
+
+struct DMB
+{
+    // first 16-bit halfword
+    uint32_t option : 4;   // bits [10:0]
+    uint32_t reservered : 28;
+
+    DMB() = default;
+    
+    DMB(uint8_t option)
+    {
+        this->option = option;
+        reservered = 0;
+    }
+};
+
+struct ISB
+{
+    // first 16-bit halfword
+    uint32_t option : 4;   // bits [10:0]
+    uint32_t reservered : 28;
+
+    ISB() = default;
+    
+    ISB(uint8_t option)
+    {
+        this->option = option;
+        reservered = 0;
+    }
+};
+
+struct MSR
+{
+    uint32_t sysm : 8;
+    uint32_t reserved0 : 8;
+    uint32_t rn : 4;
+    uint32_t reserved : 12;
+
+    MSR() = default;
+    
+    MSR(uint8_t rn, uint8_t sysm)
+    {
+        this->rn = rn;
+        this->sysm = sysm;
+        this->reserved0 = 0;
+        this->reserved = 0;
+    }
+};
+
+
+struct MRS
+{
+    uint32_t sysm : 8;
+    uint32_t rd : 4;
+    uint32_t reserved : 22;
+
+    MRS() = default;
+    
+    MRS(uint8_t rd, uint8_t sysm)
+    {
+        this->rd = rd;
+        this->sysm = sysm;
+
+    }
+};
+
 union Thumb2Instruction
 {
-
     BranchLinkInstruction _BranchLinkInstruction;
+    DSB _DSBInstruction;
+    DMB _DMBInstruction;
+    ISB _ISBInstruction;
+    MRS _MRSInstruction;
+    MSR _MSRInstruction;
 };
 
 enum InstructionType
@@ -608,49 +673,40 @@ class Cpu
 {
     public:
         static constexpr uint32_t FLASH_BASE = 0x00000000;
-        static constexpr uint32_t FLASH_SIZE = 64 * 1024;
-                                    
+        static constexpr uint32_t FLASH_SIZE = 64 * 1024;                    
         static constexpr uint32_t RAM_BASE   = 0x20000000;
         static constexpr uint32_t RAM_SIZE   = 16 * 1024;
-        // uint8_t flash[0x1000];
 
         uint32_t nextInstrAddr;
         uint32_t currentInstrAddr;
-        
         uint8_t exception_request;
         uint8_t exception_number;
-
-        SCS scs;
-
-        void tick(void);
+        uint8_t decodedInstructionSize;
 
         bool synchronous_fault;
         bool exceptionActive[512];
         bool exceptionPending[512];
+
         std::vector<uint8_t> flash;
         std::vector<uint8_t> ram;
         Registers registers;
         uint32_t regs[16];
-        // uint8_t ram[0x1000];
+        
         XPSR xpsr;
-        // ASPR aspr;
-        // EPSR espr;
-        // uint32_t xpsr;
+        SCS scs;
+
         uint32_t msp;
         uint32_t psp;
         uint32_t primask;
-        // uint32_t control;
+
         Control control;
         Mode currentMode;
 
         Thumb2Instruction decodedThumb2Instruction;
-        
-        Instruction decodedInstruction;
-        
-        
-        InstrClass instructionClass;
-        
         InstructionClassThumb2 thumb2Class;
+    
+        Instruction decodedInstruction;
+        InstrClass instructionClass;
         
         DecodeImmShiftResult decodeImmShiftResult;
         
@@ -658,31 +714,29 @@ class Cpu
 
         Branch_misc_type branch_misc_type;
         
-
-
         InstructionType instructionType;
 
         uint32_t fetched_instruction;
+        uint32_t VTOR;
 
         Cpu(size_t ram_size, size_t flash_size);
-
-        uint32_t getSP(void) const;
         void setPrimaskPM(bool value);
         bool conditionPassed(uint8_t cond) const;
         void write32(uint32_t address, uint32_t value);
         void write16(uint32_t address, uint16_t value);
         void write8(uint32_t address, uint8_t value);
+
         uint8_t read8(uint32_t address) const;
         uint16_t read16(uint32_t address) const;
         uint32_t read32(uint32_t address) const;
-        uint32_t read32v2(uint32_t address) const;
         uint32_t read32Flash(uint32_t address) const;
-        InstrClass classify(uint16_t instr);
+        uint32_t getSP(void) const;
+        uint32_t exceptionActiveBitCount(void) const;
+
         bool currentModeIsPrivileged(void);
         
-
+        void tick(void);
         void setAPSRValues(bool c, bool n, bool v, bool z);
-        
         void handleSpecialInstructions(uint16_t instruction);
 
         uint8_t currentCond(uint32_t instruction);
@@ -690,7 +744,8 @@ class Cpu
         uint32_t sign_extend(uint32_t value, int bits);
         DecodeImmShiftResult decodeImmShift(uint8_t type, uint8_t imm5);
         Shift_c shift_c(uint32_t value, SRType type, uint8_t amount, bit carry_in);
-        AddCarryResult addWithCarry(uint32_t x, uint32_t y, bool carry_in);
+        AddCarryResult addWithCarry(uint32_t x, uint32_t y, bool carry_in);        
+        InstrClass classify(uint16_t instr);
 
         bool inITBlock(void);
         bool is32bitInstruction(uint8_t thumb_mode);
@@ -740,16 +795,10 @@ class Cpu
         void decode(void);
         void execute(void);
         void print_state(void) const;
-
-        uint32_t VTOR;
-        uint8_t decodedInstructionSize;
-
         void deActivate(uint32_t exceptionNumber);
 
-        void reset();
-        uint32_t exceptionActiveBitCount() const;
+        void reset(void);
         void exceptionReturn(uint32_t EXC_RETURN);
-
         void PopStack(uint32_t frameptr, uint32_t EXC_RETURN);
 
     private:

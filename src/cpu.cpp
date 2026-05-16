@@ -7,11 +7,6 @@ constexpr uint32_t UART_SR   = UART_BASE + 0x4;
 Cpu::Cpu(size_t ram_size, size_t flash_size) : ram(ram_size), flash(flash_size)
 {
     this->reset();
-
-    // for (uint8_t i = 0; i < 512; i++)
-    // {
-    //     exceptionPending[i] = false;
-    // }
 }   
 
 uint32_t Cpu::getSP(void) const
@@ -77,19 +72,6 @@ bool Cpu::conditionPassed(uint8_t cond) const
 
     return result;
 }
-
-uint32_t Cpu::read32(uint32_t address) const
-{
-    address = address - RAM_BASE;
-
-    uint32_t data = this->ram[address] |
-    (this->ram[address + 1] << 8) |
-    (this->ram[address + 2] << 16) |
-    (this->ram[address + 3] << 24);
-
-    return data;
-}
-
 
 void Cpu::write32(uint32_t address, uint32_t value)
 {
@@ -601,7 +583,7 @@ void Cpu::executeLoadStoreImm(void)
             fprintf(stderr,"Rt = r%d = 0x%08x\n", t, regs[t]);
             fprintf(stderr,"Address = 0x%08x\n", address);
 
-            uint32_t value = read32v2(address);
+            uint32_t value = read32(address);
 
             fprintf(stderr,"Loaded value = 0x%08x\n", value);
 
@@ -732,7 +714,7 @@ void Cpu::BXWritePC(uint32_t address) {
     // to be implemented
 }
 
-uint32_t Cpu::read32v2(uint32_t address) const
+uint32_t Cpu::read32(uint32_t address) const
 {
     if (address < RAM_BASE)
     {    
@@ -774,8 +756,6 @@ void Cpu::executeMisc(void)
     switch (misc_type)
     {
         case SEV:
-
-        
             // Handle SEV
             break;
 
@@ -998,14 +978,12 @@ void Cpu::executeMisc(void)
 
 void Cpu::handleMisc(uint16_t instr) 
 {
-
     printf("Handle MISC: \n");
     std::cout << std::hex << instr << std::endl;
+
     if ((instr & 0xFFFF) == 0b1011111101000000) 
     {
         fprintf(stderr, "SEV\n");
-
-        // send events 
         this->misc_type = SEV;
         return;
     }
@@ -1013,9 +991,6 @@ void Cpu::handleMisc(uint16_t instr)
     if ((instr & 0xFFFF) == 0b1011111100000000) 
     {
         fprintf(stderr, "NOP\n");
-
-        // Literally do nothing
-        // send events 
         this->misc_type = NOP;
         return;
     }
@@ -1023,30 +998,15 @@ void Cpu::handleMisc(uint16_t instr)
     if ((instr & 0xFFFF) == 0b1101111100000000) 
     {
         fprintf(stderr, "SVC Instruction");
-
         this->misc_type = SVC;
-
-        // uint8_t imm32 = instr & 0xFF;
-        // exception_request = 1;
-        // exception_number = 11;
-        // SVC Exception how tf do we cause that
-        // send events 
-
         return;
     }
-
 
     if ((instr & 0b1111111111100000) == 0b1011011001100000) 
     {
         fprintf(stderr, "CPS\n");
-
         this->misc_type = CPS;
-
-
         this->decodedInstruction.cPSInstruction = CPSInstruction(instr);
-
-        // bool im = instr & (0b1 << 4);
-        // setPrimaskPM(im);
         return;
     }
 
@@ -1054,143 +1014,24 @@ void Cpu::handleMisc(uint16_t instr)
     if ((instr & 0b1111111100000000) == 0b1011000000000000) 
     {
         this->misc_type = SUBADD;
-
         this->decodedInstruction._AddSubSpInstruction = AddSubSpInstruction(instr);
-        // bool S = (instr >> 7) & 1;     // 0=ADD, 1=SUB
-        // const uint8_t imm7 = instr & 0b1111111;
-        // const uint32_t imm32 = ((uint32_t) imm7 << 2);
-
-
-
-        // if (S)
-        // {
-        //     fprintf(stderr, "SUB\n");
-        //     const auto result = this->addWithCarry(getSP(), ~imm32, 1);
-        //     this->regs[13] = result.result;
-        // }
-        // else
-        // {
-        //     fprintf(stderr, "ADD\n");
-        //     const auto result = this->addWithCarry(getSP(), imm32, 0);
-        //     this->regs[13] = result.result;
-        // }
-
         return;
     }
 
     // // ---- PUSH / POP ----
-    if ((instr & 0b1111000000000000) == 0b1011000000000000) {
+    if ((instr & 0b1111000000000000) == 0b1011000000000000) 
+    {
         this->misc_type = PUSHPOP;
         this->decodedInstruction._PushPopInstruction = PushPopInstruction(instr);
-        // bool L = (instr >> 11) & 1;   // 0=PUSH, 1=POP
-        // bool R = (instr >> 8) & 1;    // LR (push) / PC (pop)
-        // uint8_t register_list = instr & 0xFF;
-
-
-        // if (L) 
-        // {
-        //     fprintf(stderr, "POP\n");
-        //     uint32_t registers = register_list << 7;
-
-        //     if (std::bitset<32>(registers).count() < 1)
-        //     {
-        //         return;
-        //     }   
-
-        //     uint32_t address = this->getSP();
-
-        //     for (uint8_t i = 0; i < 8 ; i++)
-        //     {
-        //         // Isolate the ith bit
-        //         if (registers & (0b1 << i))
-        //         {
-        //             this->regs[i] = this->read32(address);
-        //             address += 4;
-        //         }
-        //     }
-
-        //     if (registers & (0b1 << 15))
-        //     {
-        //         this->BXWritePC(address);
-        //     }
-
-        //     this->regs[13] += (4 * std::bitset<32>(registers).count());
-        // } 
-        // else 
-        // {
-        //     fprintf(stderr, "PUSH\n");
-        //     bool M = (instr >> 8) & 1; 
-
-        //     //             0 : M : 000 000 : 0000 0000
-        //     //                               
-        //     uint32_t registers =  register_list | (M << 13);
-
-
-        //     uint32_t address = getSP() - (4 * std::bitset<32>(registers).count());
-
-        //     fprintf(stderr, "handleMisc(): adddress: %x\n", address);
-
-        //     for (int i = 0; i < 15; i++)
-        //     {
-        //         if (register_list & (1 << i))
-        //         {
-        //             write32(address, regs[i]);
-        //             address += 4;
-        //         }
-        //     }
-
-        //     this->regs[13] -= (4 * std::bitset<32>(registers).count());
-        // }
         return;
     }
 
     // ---- EXTEND (UXTB/SXTB/UXTH/SXTH) ----
-    if ((instr & 0b1111110000000000) == 0b1011001000000000) {
+    if ((instr & 0b1111110000000000) == 0b1011001000000000) 
+    {
 
         this->misc_type = EXTEND;
         this->decodedInstruction._ExtendInstruction = ExtendInstruction(instr);
-        // uint8_t op = (instr >> 6) & 0x3;
-        // uint8_t m = (instr >> 3) & 0x7;
-        // uint8_t d = instr & 0x7;
-
-        // switch (op) 
-        // {
-        //     case 0:
-        //     {
-        //         uint8_t rotation = 0;
-        //         const auto result = this->ROR(this->regs[m], rotation);
-                
-        //         this->regs[d] = sign_extend((uint16_t) result, 32);
-
-        //         break; 
-        //         // SXTH
-        //     }
-        //     case 1:
-        //     {
-        //         uint8_t rotation = 0;
-        //         const auto result = this->ROR(this->regs[m], rotation);
-                
-        //         this->regs[d] = sign_extend((uint8_t) result, 32);
-        //         break; // SXTB;
-        //     }
-            
-        //     case 2:               
-        //     {
-        //         uint8_t rotation = 0;
-        //         const auto result = this->ROR(this->regs[m], rotation);
-                
-        //         this->regs[d] = (uint16_t) result;
-        //         break; // UXTH;
-        //     }
-        //     case 3:                     
-        //     {
-        //         uint8_t rotation = 0;
-        //         const auto result = this->ROR(this->regs[m], rotation);
-                
-        //         this->regs[d] = (uint8_t )result;
-        //         break; // UXTB;
-        //     }
-        // }
         return;
     }
 
@@ -1199,56 +1040,6 @@ void Cpu::handleMisc(uint16_t instr)
     {
         this->misc_type = REV;
         this->decodedInstruction._RevInstruction = RevInstruction(instr);
-        // uint8_t op = (instr >> 6) & 0x3;
-        // uint8_t m = (instr >> 3) & 0x7;
-        // uint8_t d = instr & 0x7;
-
-        // // uint32_t v = regs[rm];
-
-        // switch (op) 
-        // {
-        //     case 0: // REV
-        //     {   
-        //         uint32_t Rm = this->regs[m];
-                
-        //         uint32_t result = 
-        //         (Rm & 0xFF) << 24 | 
-        //         ((Rm >> 8) & 0xFF) << 16 | 
-        //         ((Rm >> 16) & 0xFF) << 8 |
-        //         ((Rm >> 24) & 0xFF);
-
-        //         break;
-        //     }
-
-        //     case 1: // REV16
-        //     {
-        //         uint32_t Rm = regs[m];
-
-        //         uint32_t result =
-        //             ((Rm & 0x00FF00FF) << 8) |
-        //             ((Rm & 0xFF00FF00) >> 8);
-
-        //         regs[d] = result;
-        //         break;
-        //     }
-
-        //     case 3: // REVSH
-        //     {
-        //         uint32_t Rm = regs[m];
-
-        //         // Extract low 16 bits
-        //         uint16_t half = Rm & 0xFFFF;
-
-        //         // Swap bytes
-        //         uint16_t swapped = (half >> 8) | (half << 8);
-
-        //         // Sign extend to 32-bit
-        //         int32_t result = (int16_t)swapped;
-
-        //         regs[d] = (uint32_t)result;
-        //         break;
-        //     }
-        // }
         return;
     }
 }
@@ -1343,34 +1134,25 @@ void Cpu::executeLoadStoreReg(void)
         }
         case 0b100: // LDR
         {
-
             fprintf(stderr, "LDR (Register)\n");
-            bool index = true;
-            bool add = true;
-            bool wback = false;
-
             uint32_t Rn = this->regs[n];
 
             const auto offset = shift(this->regs[m], SRType_LSL, 0, xpsr.C());
 
-            uint32_t offset_addr =  add ? Rn + offset : Rn - offset;
-            uint32_t address = index ? offset_addr : Rn;
+            uint32_t offset_addr = Rn + offset;
+            uint32_t address = offset_addr;
 
             this->regs[t] = this->read32(address);
             break;
         }
         case 0b101: // LDRH
         {
-            bool index = true;
-            bool add = true;
-            bool wback = false;
-
             uint32_t Rn = this->regs[n];
 
             const auto offset = shift(this->regs[m], SRType_LSL, 0, xpsr.C());
 
-            uint32_t offset_addr =  add ? Rn + offset : Rn - offset;
-            uint32_t address = index ? offset_addr : Rn;
+            uint32_t offset_addr =  Rn + offset;
+            uint32_t address = offset_addr;
 
             this->regs[t] = (uint32_t) this->read16(address);
     
@@ -1378,16 +1160,12 @@ void Cpu::executeLoadStoreReg(void)
         }
         case 0b110: // LDRB
         {
-            bool index = true;
-            bool add = true;
-            bool wback = false;
-
             uint32_t Rn = this->regs[n];
 
             const auto offset = shift(this->regs[m], SRType_LSL, 0, xpsr.C());
 
-            uint32_t offset_addr =  add ? Rn + offset : Rn - offset;
-            uint32_t address = index ? offset_addr : Rn;
+            uint32_t offset_addr = Rn + offset;
+            uint32_t address = offset_addr;
 
             this->regs[t] = (uint32_t) this->read8(address);
     
@@ -1395,19 +1173,15 @@ void Cpu::executeLoadStoreReg(void)
         }
         case 0b111: // LDRSH
         {
-            bool index = true;
-            bool add = true;
-            bool wback = false;
-
             uint32_t Rn = this->regs[n];
 
             const auto offset = shift(this->regs[m], SRType_LSL, 0, xpsr.C());
 
-            uint32_t offset_addr =  add ? Rn + offset : Rn - offset;
-            uint32_t address = index ? offset_addr : Rn;
+            uint32_t offset_addr = Rn + offset;
+            uint32_t address = offset_addr;
 
             this->regs[t] = sign_extend(this->read16(address), 32);
-    
+
             break;
         }
     }
@@ -1912,7 +1686,7 @@ void Cpu::executeLDRLiteral(void)
     fprintf(stderr,"dest reg: %x\n", decoded.rt);
     fprintf(stderr,"Address %x\n", imm32 + base);
 
-    this->regs[decoded.rt] = read32v2(address);
+    this->regs[decoded.rt] = read32(address);
 }
 
 void Cpu::executeAddSub(void)
@@ -1971,12 +1745,158 @@ void Cpu::execute(void)
             {
                 switch(this->branch_misc_type)
                 {
-                    case MSR:
+                    case MRS_Instruction:
                     {
+
+                        MRS decoded = this->decodedThumb2Instruction._MRSInstruction;
+                        uint8_t sysm = decoded.sysm;
+                        uint8_t d = decoded.rd;
+
+                        switch ((sysm >> 3) & 0x1F)
+                        {
+                            case 0:
+                            {
+                                // APSR
+                                if ((sysm & 0b1) == 1)
+                                {
+                                    regs[d] = this->xpsr.apsr() & 0xFF;
+                                }
+                                else if ((sysm & (0b1 << 1)) == 1)
+                                {
+                                    regs[d] &= ~(1 << 24);
+                                }
+                                else if ((sysm & (0b1 << 2)) == 0)
+                                {
+                                    regs[d] = this->xpsr.apsr() & 0xF8000000;
+                                }
+                                break;
+                            }
+
+                            case 1:
+                            {
+                                if (this->currentModeIsPrivileged())
+                                {
+                                    switch (sysm & 0x7)
+                                    {
+                                        case 0:
+                                            regs[d] = msp;
+                                            break;
+
+                                        case 1:
+                                            regs[d] = psp;
+                                            break;
+                                    }
+                                }
+                                break;
+                            }
+
+                            case 2:
+                            {
+                                switch (sysm & 0x7)
+                                {
+                                    case 0:
+                                        regs[d] &= ~(currentModeIsPrivileged() ? (primask & 0b1) : 0);
+                                        break;
+
+                                    case 4:
+                                        regs[d] &= ~(control.nPRIV & 0b11);
+                                        break;
+                                }
+                                break;
+                            }
+                        }
                         break;
                     }
-                    case MRS:
+                    case MSR_Instruction:
                     {
+                        MSR decoded = this->decodedThumb2Instruction._MSRInstruction;
+                        uint8_t sysm = decoded.sysm;
+                        uint8_t n = decoded.rn;
+
+                        uint32_t Rn = this->regs[n];
+
+                        switch ((sysm >> 3) & 0x1F)
+                        {
+                            //
+                            // APSR
+                            //
+                            case 0b00000:
+                            {
+                                if (((sysm >> 2) & 1) == 0)
+                                {
+                                    // APSR<31:27> = R[n]<31:27>
+                                    this->xpsr.setNZCVQ(Rn >> 27);
+                                }
+
+                                break;
+                            }
+
+                            //
+                            // MSP / PSP
+                            //
+                            case 0b00001:
+                            {
+                                if (currentModeIsPrivileged())
+                                {
+                                    switch (sysm & 0x7)
+                                    {
+                                        //
+                                        // MSP
+                                        //
+                                        case 0b000:
+                                        {
+                                            this->msp = Rn & ~0x3u;
+                                            break;
+                                        }
+
+                                        //
+                                        // PSP
+                                        //
+                                        case 0b001:
+                                        {
+                                            this->psp = Rn & ~0x3u;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            case 0b00010:
+                            {
+                                if (currentModeIsPrivileged())
+                                {
+                                    switch (sysm & 0x7)
+                                    {
+                                        //
+                                        // PRIMASK
+                                        //
+                                        case 0b000:
+                                        {
+                                            // FIX ME
+
+                                            std::cout << "FIX ME\n";
+                                            // this->primask = Rn & 1u;
+                                            break;
+                                        }
+
+                                        //
+                                        // CONTROL
+                                        //
+                                        case 0b100:
+                                        {
+                                            control.nPRIV = Rn & 1u;
+
+                                            if (currentMode == Mode::MODE_THREAD)
+                                            {
+                                                control.SPSEL =
+                                                    (Rn >> 1) & 1u;
+                                            }
+
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         break;
                     }
                     case UDF:
@@ -2136,7 +2056,6 @@ void Cpu::execute(void)
 void Cpu::decode(void)
 {
     uint32_t instruction = this->fetched_instruction;
-
     uint8_t format_id = (instruction >> 11) & 0x1F;   
 
     std::cerr << "PC" << this->regs[15] << std::endl;
@@ -2149,97 +2068,88 @@ void Cpu::decode(void)
         switch (format_id)
         {
             case 0b11101:
+            {
+                break;
+            }
 
             // BL
             case 0b11110:
             {
-
                 // 1111 1000 0001 0000       1111 0000 0000 0000
-
                 uint8_t op1 = (instruction >> 20) & 0x7F;
                 uint8_t op2 = (instruction >> 12) & 0b111;
 
                 uint16_t first  = instruction & 0xFFFF;
                 uint16_t second = instruction >> 16;
+
                 // MSR
                 if ((op1 & 0b1111110) == 0b0111000 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
                 {
 
-                    // uint8_t d = second & 0x7;
-                    // uint8_t sysm = first & 0xFF;
 
-                    // switch ((sysm >> 3) & 0x1F)
-                    // {
-                    //     case 0:
-                    //     {
-                    //         // APSR
-                    //         if ((sysm & 0b1) == 1)
-                    //         {
-                    //             regs[d] = this->xpsr.apsr & 0xFF;
-                    //         }
-                    //         else if ((sysm & (0b1 << 1)) == 1)
-                    //         {
-                    //             regs[d] &= ~(1 << 24);
-                    //         }
-                    //         else if ((sysm & (0b1 << 2)) == 0)
-                    //         {
-                    //             regs[d] = xpsr.apsr & 0xF8000000;
-                    //         }
-                    //         break;
-                    //     }
+                    uint8_t n = second & 0x7;
+                    uint8_t sysm = first & 0xFF;
 
-                    //     case 1:
-                    //     {
-                    //         if (this->currentModeIsPrivileged())
-                    //         {
-                    //             switch (sysm & 0x7)
-                    //             {
-                    //                 case 0:
-                    //                     regs[d] = msp;
-                    //                     break;
+                    this->decodedThumb2Instruction._MSRInstruction = MSR(n, sysm);
+                    this->thumb2Class = BRANCH_MISC;
+                    this->branch_misc_type = MSR_Instruction;
+                  
+                
 
-                    //                 case 1:
-                    //                     regs[d] = psp;
-                    //                     break;
-                    //             }
-                    //         }
-
-                    //         break;
-                    //     }
-
-                    //     case 2:
-                    //     {
-                    //         switch (sysm & 0x7)
-                    //         {
-                    //             case 0:
-                    //                 regs[d] &= ~(currentModeIsPrivileged() ? (primask & 0b1) : 0);
-                    //                 break;
-
-                    //             case 4:
-                    //                 regs[d] &= ~(control.nPRIV & 0b11);
-                    //                 break;
-                    //         }
-                    //         break;
-                    //     }
-                    // }
                 }
+                // ISB, DMS, DMB
                 else if ((op1 & 0b1111111) == 0b0111011 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
                 {
+                    uint8_t op = (first >> 4) & 0xF;
+                    uint8_t option = first & 0xF;
+                    uint8_t second_bits_0_4 = second & 0xF;
+                    uint8_t first_bits_11_8 = (first >> 8) & 0xF;
 
+                    if (second_bits_0_4 != 0xF || first_bits_11_8 != 0xF)
+                    {
+                        // Should not happen;
+                        return;
+                    }
+
+                    switch (op)
+                    {
+                        case 0b0100:
+                            this->decodedThumb2Instruction._DSBInstruction = DSB(option);
+                            this->thumb2Class = BRANCH_MISC;
+                            this->branch_misc_type = BL;
+
+                            break;
+
+                        case 0b0101:
+                            this->decodedThumb2Instruction._DMBInstruction = DMB(option);
+                            this->thumb2Class = BRANCH_MISC;
+                            this->branch_misc_type = BL;
+                            break;
+
+                        case 0b0110:
+                            this->decodedThumb2Instruction._ISBInstruction = ISB(option);
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
+                // MRS
                 else if ((op1 & 0b1111110) == 0b0111110 &&  ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
                 {
-
+                    this->decodedThumb2Instruction._MRSInstruction = MRS(second & 0x7, first & 0xFF);
+                    this->thumb2Class = BRANCH_MISC;
+                    this->branch_misc_type = MRS_Instruction;
+                                        // uint8_t d = second & 0x7;
+                    // uint8_t sysm = first & 0xFF;         
                 }
                 else if ((op1 & 0b1111111) == 0b1111111 && op2 == 0b010)
                 {
                     // undefined
                 }
-                else if ( ((op2 & 0b001) | (op2 & 0b100)) == 0b101)
+                else if (((op2 & 0b001) | (op2 & 0b100)) == 0b101)
                 {
-
                     fprintf(stderr,"BRANCH AND LINK\n");
-                    // Branch and Link  
                     this->decodedThumb2Instruction._BranchLinkInstruction = BranchLinkInstruction(instruction);
                     this->thumb2Class = BRANCH_MISC;
                     this->branch_misc_type = BL;
@@ -2452,18 +2362,10 @@ void Cpu::pushStack(int ExceptionType)
             // Hardware-defined stack frame layout
             //    fprintf(stderr, "pushing registers done!\n");
     write32(frameptr + 0x00, regs[0]);
-    
-    // while(1);
     write32(frameptr + 0x04, regs[1]);
-    //    fprintf(stderr, "pushing registers done!\n");
     write32(frameptr + 0x08, regs[2]);
     write32(frameptr + 0x0C, regs[3]);
-
-    // fprintf(stderr, "pushing registers done!\n");
-
     write32(frameptr + 0x10, regs[12]);
-
-    //  fprintf(stderr, "pushing registers done!\n");
     write32(frameptr + 0x14, regs[14]); // LR
     write32(frameptr + 0x18, returnAddress(ExceptionType));
 
@@ -2533,7 +2435,7 @@ void Cpu::exceptionTaken(int32_t exceptionNumber)
     uint32_t vectorTable = 0x0;
 
     // Read handler address from vector table
-    uint32_t handler = read32v2(vectorTable + (4 * exceptionNumber));
+    uint32_t handler = read32(vectorTable + (4 * exceptionNumber));
     
     fprintf(stderr, "exceptionNumber: %d\n", exceptionNumber);
     fprintf(stderr, "handler: %x\n", handler);
@@ -2620,13 +2522,13 @@ void Cpu::reset()
     // ClearEventRegister();
 
     // Load initial MSP
-    this->msp = read32v2(vectortable) & 0xFFFFFFFCu;
+    this->msp = read32(vectortable) & 0xFFFFFFFCu;
 
     // PSP = UNKNOWN aligned
     this->psp = 0;
 
     // Load reset vector
-    uint32_t start = read32v2(vectortable + 4);
+    uint32_t start = read32(vectortable + 4);
 
     // Branch to reset handler
     this->regs[15] = start & ~1u;
@@ -2790,14 +2692,14 @@ void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
     // Restore stacked registers
     //--------------------------------------------------
 
-    this->regs[0]  = read32v2(frameptr + 0x00);
-    regs[1]  = read32v2(frameptr + 0x04);
-    regs[2]  = read32v2(frameptr + 0x08);
-    regs[3]  = read32v2(frameptr + 0x0C);
-    regs[12] = read32v2(frameptr + 0x10);
-    regs[14]    = read32v2(frameptr + 0x14);
-    uint32_t pc  = read32v2(frameptr + 0x18);
-    uint32_t psr = read32v2(frameptr + 0x1C);
+    this->regs[0]  = read32(frameptr + 0x00);
+    regs[1]  = read32(frameptr + 0x04);
+    regs[2]  = read32(frameptr + 0x08);
+    regs[3]  = read32(frameptr + 0x0C);
+    regs[12] = read32(frameptr + 0x10);
+    regs[14]    = read32(frameptr + 0x14);
+    uint32_t pc  = read32(frameptr + 0x18);
+    uint32_t psr = read32(frameptr + 0x1C);
 
     //--------------------------------------------------
     // Thumb bit validation
@@ -2932,7 +2834,6 @@ bool Cpu::handleSyncrnousExceptions(void)
 
     return true;
 }
-
 
  void Cpu::tick(void)
 {
