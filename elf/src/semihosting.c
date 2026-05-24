@@ -1,11 +1,11 @@
 #include "semihosting.h"
 
-static void uart_putc(char c)
+void uart_putc(char c)
 {
-    UART_DR = (uint32_t)c;
+    UART_DR = c;
 }
 
-static void uart_puts(const char* s)
+void uart_puts(const char* s)
 {
     while (*s)
     {
@@ -15,24 +15,38 @@ static void uart_puts(const char* s)
 
 static void uart_put_uint(uint32_t value)
 {
-    char buffer[10];
-    int i = 0;
-
-    if (value == 0)
+    static const uint32_t divisors[] =
     {
-        uart_putc('0');
-        return;
-    }
+        1000000000,
+        100000000,
+        10000000,
+        1000000,
+        100000,
+        10000,
+        1000,
+        100,
+        10,
+        1
+    };
 
-    while (value > 0)
-    {
-        buffer[i++] = '0' + (value % 10);
-        value /= 10;
-    }
+    int started = 0;
 
-    while (i > 0)
+    for (int i = 0; i < 10; i++)
     {
-        uart_putc(buffer[--i]);
+        uint32_t divisor = divisors[i];
+        uint32_t digit = 0;
+
+        while (value >= divisor)
+        {
+            value -= divisor;
+            digit++;
+        }
+
+        if (digit || started || divisor == 1)
+        {
+            uart_putc('0' + digit);
+            started = 1;
+        }
     }
 }
 

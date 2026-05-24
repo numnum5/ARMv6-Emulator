@@ -76,26 +76,45 @@ bool Cpu::conditionPassed(uint8_t cond) const
 void Cpu::write32(uint32_t address, uint32_t value)
 {
 
+    // System register access
     if (address >= 0xE0000000 && address <= 0xE00FFFFF)
     {
         this->scs.write32(address, value);
         fprintf(stderr, "write32: Address: %x\n", address);
 
-        // while(1);
+        
         return;
     }
 
+    // UART semihosting access
     if(address == UART_DR)
     {
+        if ((value & 0xFF) == '\0')
+        {
+            while(1);
+        }
+
         printf("%c", value & 0xFF);
+        fprintf(stderr, "Char value: %c\n", value & 0xFF);
         fflush(stdout);
+
+        // while(1);//
         return;
     }
 
-
+    // Normal access
     address = address - RAM_BASE;
 
-     fprintf(stderr, "write32: Address: %x\n", address);
+    if (address == 0x00000fec)
+    {
+        printf("THIS IS WRITING TO 0x00000fec\n");
+
+
+
+        // while(1);
+    }
+
+    fprintf(stderr, "write32: Address: %x\n", address);
     this->ram[address] = value & 0xFF;
     this->ram[address + 1] = (value >> 8) & 0xFF;
     this->ram[address + 2] = (value >> 16) & 0xFF;
@@ -105,6 +124,15 @@ void Cpu::write32(uint32_t address, uint32_t value)
 void Cpu::write16(uint32_t address, uint16_t value)
 {
  
+
+     if (address == 0x00000fec)
+    {
+        printf("THIS IS WRITING TO 0x00000fec\n");
+
+
+
+        // while(1);
+    }
     printf("write16(): address: %x\n", address);
     address = address - RAM_BASE;
     this->ram[address] = value & 0xFF;
@@ -113,16 +141,45 @@ void Cpu::write16(uint32_t address, uint16_t value)
 
 void Cpu::write8(uint32_t address, uint8_t value)
 {
+
+
+     if (address == 0x00000fec)
+    {
+        printf("THIS IS WRITING TO 0x00000fec\n");
+
+
+
+        // while(1);
+    }
+    fprintf(stderr, "write8(): address: %x, value: %c\n", address, value);
     address = address - RAM_BASE;
     this->ram[address] = value;
 }
 
 uint8_t Cpu::read8(uint32_t address) const
 {
-    address = address - RAM_BASE;
-    uint8_t data = this->ram[address];
-    
-    return data;
+    std::cerr << "read8(): " << std::hex << address << std::endl;
+    if (address < RAM_BASE)
+    {    
+        address = address - FLASH_BASE;
+
+        uint8_t data = this->flash[address];
+
+        fprintf(stderr,"read8(): Reading Flash\n");
+        fprintf(stderr,"Reading: Flash Address: %d\n", address);
+        fprintf(stderr,"FLASH DATA: %c\n", data);   
+        
+        return data;
+    }
+    else
+    {
+        fprintf(stderr, "read8(): RAM\n");
+
+        address = address - RAM_BASE;
+        uint8_t data = this->ram[address];
+
+        return data;
+    }
 }
 
 uint16_t Cpu::read16(uint32_t address) const 
@@ -204,145 +261,387 @@ InstrClass Cpu::classify(uint16_t instr)
         if ((op & 0b11000) == 0b00000)
         {
             return InstrClass::SHIFT_IMM;
-            printf("THIS IS LSL\n");
         }
     }
 
-    if ((instr & 0b1110000000000000) == 0b0010000000000000) {
+    if ((instr & 0b1110000000000000) == 0b0010000000000000) 
+    {
         return InstrClass::MOV_CMP_ADD_SUB;  // 001xx xxxx xxxx
     }
 
     return InstrClass::UNKNOWN;
 }
 
-void Cpu::handleSpecialInstructions(uint16_t instruction)
+void Cpu::ALUWritePC(uint32_t address)
 {
-    uint8_t op = (instruction >> 8) & 0b11;
-    uint8_t H1 = (instruction >> 7) & 0b1;
-    uint8_t H2 = (instruction >> 6) & 0b1;
+    this->regs[15] = address & ~1u;
+}
 
-    uint8_t m = ((instruction >> 3) & 0b111) | (H2 << 3);
-    uint8_t d = (instruction & 0b111) | (H1 << 3);
+void Cpu::executeSpecialInstructions()
+{
+    SpecialInstruction decoded =
+        decodedInstruction._SpecialInstruction;
 
-    // 1011 0101 1000 0000
-    switch (op)
+    switch (specialOpType)
     {
-        case 0b00: // ADD (high register)
+        case SpecialOp::ADD:
         {
-            printf("ADD (Register)\n");
-            bool sevenBit = (instruction >> 7) & 0b1;
+            fprintf(stderr,
+                    "ADD (Register)\n");
 
-            uint8_t DN_rdn = (d << 1) | sevenBit;
+            AddHighInstruction i =
+                decoded.add;
 
-            if (DN_rdn == 0b1101 || m == 0b1101)
+            const auto result =
+                addWithCarry(
+                    regs[i.d],
+                    regs[i.m],
+                    0);
+
+            if (i.d == 15)
             {
-
-            }
-
-            regs[d] = regs[d] + regs[m];
-
-
-            break;
-        }
-        case 0b01: // CMP (high register)
-        {   
-            printf("CMP (Register)\n");
-            bool aspr_N = (instruction >> 7) & 0b1;
-
-            uint8_t m = ((instruction >> 3) & 0b111);
-            uint8_t n = (instruction & 0b111);
-            if (n < 8 && m < 8)
-            {   
-                std::cout << "Unpredictable\n";
-                return;
-            }
-
-            if (n == 15 || m == 15)
-            {
-                std::cout << "Unpredictable\n";
-                return;
-            }
-
-            const auto shifted = shift(this->regs[m], SRType_LSL, 0, xpsr.C());
-           
-            const auto result = addWithCarry(this->regs[n], ~shifted, 1);
-
-            this->xpsr.setC(result.carry_out);
-            this->xpsr.setV(result.overflow);
-            this->xpsr.setZ(result.result == 0);
-            this->xpsr.setN((result.result >> 31) & 0b1);
-            
-            // updateFlagsSub(regs[rd], regs[rm], result);
-            break;
-        }
-
-        case 0b10: // MOV (register)
-        {
-            std::cout << "MOV (register)\n";
-            bool aspr_N = (instruction >> 7) & 0b1;
-
-            uint8_t m = ((instruction >> 3) & 0b1111);
-            uint8_t d = (instruction & 0b111);
-
-            uint32_t result = this->regs[m];
-            if (d == 15)
-            {
-
+                ALUWritePC(
+                    result.result);
             }
             else
             {
-                this->regs[d] = result;
+                regs[i.d] =
+                    result.result;
 
-                this->xpsr.setZ(result == 0);
-                this->xpsr.setN((result >> 31) & 0b1);
+                regs[15] += 2;
             }
+
             break;
         }
 
-        case 0b11: // BX or BLX
+        case SpecialOp::CMP:
         {
-            bool sevenBit = (instruction >> 7) & 0b1;
-            
-            // BLX
-            if (sevenBit)
+            fprintf(stderr,
+                    "CMP (Register)\n");
+
+            CmpHighInstruction i =
+                decoded.cmp;
+
+            const auto result =
+                addWithCarry(
+                    regs[i.rn],
+                    ~regs[i.rm],
+                    1);
+
+            xpsr.setC(
+                result.carry_out);
+
+            xpsr.setV(
+                result.overflow);
+
+            xpsr.setZ(
+                result.result == 0);
+
+            xpsr.setN(
+                (result.result >> 31) & 1);
+
+            regs[15] += 2;
+
+            break;
+        }
+
+        case SpecialOp::MOV:
+        {
+            fprintf(stderr,
+                    "MOV (Register)\n");
+
+            MovHighInstruction i =
+                decoded.mov;
+
+            uint32_t result =
+                regs[i.m];
+
+            if (i.d == 15)
             {
-                printf("BLX\n");
-
-                if (m == 15)
-                {
-                    std::cout << "Unpredictable behaviour!\n";
-                    return;
-                }
-
-                uint32_t target = this->regs[m];
-                uint32_t next_pc = this->regs[13] - 2;
-                
-                this->regs[14] = next_pc | 1; 
-
-                this->xpsr.setT(target & 0b1);
-                this->regs[13] = target & ~0b1;
+                ALUWritePC(result);
             }
-            // BX
             else
             {
-                if (m == 15)
-                {
-                    std::cout << "Unpredictable behaviour!\n";
-                    return;
-                }
+                regs[i.d] =
+                    result;
 
-                
-                // this->regs[13] = this->regs[m];
+                regs[15] += 2;
             }
-            // Thumb bit handling
-            // pc = target & ~1u;
-            // optionally check bit0 for state (Thumb only on M0)
+
+            break;
+        }
+
+        case SpecialOp::BX_BLX:
+        {
+            BranchExchangeInstruction i =
+                decoded.bx;
+
+            uint32_t target =
+                regs[i.rm];
+
+            if (i.blx)
+            {
+                fprintf(stderr,
+                        "BLX\n");
+
+                // next instruction
+                uint32_t next_instr_addr =
+                    regs[15] + 2;
+
+                regs[14] =
+                    next_instr_addr | 1u;
+
+                BLXWritePC(target);
+            }
+            else
+            {
+                fprintf(stderr,
+                        "BX\n");
+
+                BXWritePC(target);
+            }
+
             break;
         }
     }
 }
 
-void Cpu::fetch(void)
+
+void Cpu::handleSpecialInstructions2(uint16_t instruction, Decoded & decoded)
+{
+    uint8_t op = (instruction >> 8) & 0b11;
+
+    bool H1 = (instruction >> 7) & 1;
+    bool H2 = (instruction >> 6) & 1;
+
+    // full 4-bit registers
+    uint8_t m =
+        ((instruction >> 3) & 0b111) |
+        (H2 << 3);
+
+    uint8_t d =
+        (instruction & 0b111) |
+        (H1 << 3);
+
+    switch (op)
+    {
+        case 0b00: // ADD (high register)
+        {
+            fprintf(stderr, "ADD (Register)\n");
+
+            // SP special case
+            if (d == 13 || m == 13)
+            {
+                std::cerr
+                    << "SEE ADD (SP plus register)\n";
+            }
+
+            decoded.decodedInstruction
+                ._SpecialInstruction
+                .add =
+                    AddHighInstruction(d, m);
+
+            decoded.specialOpType = SpecialOp::ADD;
+            break;
+        }
+
+        case 0b01: // CMP (high register)
+        {
+            fprintf(stderr,
+                    "CMP (Register)\n");
+
+            uint8_t n = d;
+
+            // both low regs = unpredictable
+            if (n < 8 && m < 8)
+            {
+                std::cerr
+                    << "Unpredictable\n";
+                return;
+            }
+
+            // PC forbidden
+            if (n == 15 || m == 15)
+            {
+                std::cerr
+                    << "Unpredictable\n";
+                return;
+            }
+
+            decoded.decodedInstruction
+                ._SpecialInstruction
+                .cmp =
+                    CmpHighInstruction(
+                        n,
+                        m);
+
+            decoded.specialOpType =
+                SpecialOp::CMP;
+
+            break;
+        }
+
+        case 0b10: // MOV (register)
+        {
+            fprintf(stderr,
+                    "MOV (Register)\n");
+
+            decoded.decodedInstruction
+                ._SpecialInstruction
+                .mov =
+                    MovHighInstruction(
+                        d,
+                        m);
+
+            decoded.specialOpType =
+                SpecialOp::MOV;
+
+            break;
+        }
+
+        case 0b11: // BX / BLX
+        {
+            fprintf(stderr,
+                    "BX or BLX\n");
+
+            decoded.decodedInstruction
+                ._SpecialInstruction
+                .bx =
+                    BranchExchangeInstruction(
+                        m,
+                        H1); // bit7 selects BLX
+
+            decoded.specialOpType =
+                SpecialOp::BX_BLX;
+
+            break;
+        }
+    }
+}
+
+
+void Cpu::handleSpecialInstructions(uint16_t instruction)
+{
+    uint8_t op = (instruction >> 8) & 0b11;
+
+    bool H1 = (instruction >> 7) & 1;
+    bool H2 = (instruction >> 6) & 1;
+
+    // full 4-bit registers
+    uint8_t m =
+        ((instruction >> 3) & 0b111) |
+        (H2 << 3);
+
+    uint8_t d =
+        (instruction & 0b111) |
+        (H1 << 3);
+
+    switch (op)
+    {
+        case 0b00: // ADD (high register)
+        {
+            fprintf(stderr, "ADD (Register)\n");
+
+            // SP special case
+            if (d == 13 || m == 13)
+            {
+                std::cerr
+                    << "SEE ADD (SP plus register)\n";
+            }
+
+            decodedInstruction
+                ._SpecialInstruction
+                .add =
+                    AddHighInstruction(d, m);
+
+            specialOpType = SpecialOp::ADD;
+            break;
+        }
+
+        case 0b01: // CMP (high register)
+        {
+            fprintf(stderr,
+                    "CMP (Register)\n");
+
+            uint8_t n = d;
+
+            // both low regs = unpredictable
+            if (n < 8 && m < 8)
+            {
+                std::cerr
+                    << "Unpredictable\n";
+                return;
+            }
+
+            // PC forbidden
+            if (n == 15 || m == 15)
+            {
+                std::cerr
+                    << "Unpredictable\n";
+                return;
+            }
+
+            decodedInstruction
+                ._SpecialInstruction
+                .cmp =
+                    CmpHighInstruction(
+                        n,
+                        m);
+
+            specialOpType =
+                SpecialOp::CMP;
+
+            break;
+        }
+
+        case 0b10: // MOV (register)
+        {
+            fprintf(stderr,
+                    "MOV (Register)\n");
+
+            decodedInstruction
+                ._SpecialInstruction
+                .mov =
+                    MovHighInstruction(
+                        d,
+                        m);
+
+            specialOpType =
+                SpecialOp::MOV;
+
+            break;
+        }
+
+        case 0b11: // BX / BLX
+        {
+            fprintf(stderr,
+                    "BX or BLX\n");
+
+            decodedInstruction
+                ._SpecialInstruction
+                .bx =
+                    BranchExchangeInstruction(
+                        m,
+                        H1); // bit7 selects BLX
+
+            specialOpType =
+                SpecialOp::BX_BLX;
+
+            break;
+        }
+    }
+}
+
+uint32_t Cpu::fetch2(uint32_t pc)
+{
+    uint32_t instr = this->flash[pc] |
+                (this->flash[pc + 1] << 8)  |
+                (this->flash[pc + 2] << 16) |
+                (this->flash[pc + 3] << 24);
+    return instr;
+}
+
+uint32_t Cpu::fetch(void)
 {
     // little endians lsb first
     uint32_t pc = this->regs[15];
@@ -353,6 +652,8 @@ void Cpu::fetch(void)
                     (this->flash[pc + 3] << 24);
 
     this->fetched_instruction = instr;
+
+    return instr;
 }
 
 uint8_t Cpu::currentCond(uint32_t instruction)
@@ -454,8 +755,12 @@ Shift_c Cpu::shift_c(uint32_t value, SRType type, uint8_t amount, bit carry_in)
                 carry_out = (value >> (amount - 1)) & 1;
                 break;
             case SRType_ROR:
+                while(1);
+
                 break;
             case SRType_RRX:
+
+                while(1);
                 break;
             default:
                 result = value;
@@ -495,8 +800,10 @@ bool Cpu::inITBlock(void)
     return false;
 }
 
-bool Cpu::is32bitInstruction(uint8_t thumb_mode)
+bool Cpu::is32bitInstruction(uint32_t instruction)
 {
+    uint8_t thumb_mode = (instruction >> 11) & 0x1F; 
+
     if (thumb_mode == 0b11101 || thumb_mode == 0b11110 || thumb_mode == 0b11111)
     {
         return true;
@@ -550,6 +857,10 @@ void Cpu::executeLoadStoreImm(void)
     uint8_t n = decoded.rn;
     uint8_t t = decoded.rt;
 
+    fprintf(stderr,"Rn = r%d = 0x%08x\n", n, regs[n]);
+    fprintf(stderr,"Rt = r%d = 0x%08x\n", t, regs[t]);
+    fprintf(stderr,"imm5 = %d\n", imm5);
+
     switch (decoded.opcode) 
     {
         case 0b00: // STR (word)
@@ -595,7 +906,7 @@ void Cpu::executeLoadStoreImm(void)
         case 0b10: // STRB
         {
             fprintf(stderr,"STRB (IMMEDIATE)\n");
-            uint32_t imm32 = (uint32_t)(imm5 << 2);
+            uint32_t imm32 = imm5;
 
             bool index = true;
             bool add = true;
@@ -614,20 +925,19 @@ void Cpu::executeLoadStoreImm(void)
 
         case 0b11: // LDRB
         {
-           fprintf(stderr,"LDRB (IMMEDIATE)\n");
-            uint32_t imm32 = (uint32_t)(imm5 << 2);
-
-            bool index = true;
-            bool add = true;
-            bool wback = false;
+            fprintf(stderr,"LDRB (IMMEDIATE)\n");
+            
+            uint32_t imm32 = imm5;
 
             uint32_t Rn = this->regs[n];
 
-            uint32_t offset_addr = add ? Rn + imm32 : Rn - imm32;
+            uint32_t offset_addr = Rn + imm32;
 
-            uint32_t address = index  ? offset_addr : Rn;
+            uint32_t address = offset_addr;
 
-            this->regs[t] = (uint32_t) read8(address);
+            fprintf(stderr, "LDRB addr=%08x\n", address);
+            fprintf(stderr, "byte=%02x\n", read8(address));
+            this->regs[t] = read8(address);
 
             break;
         }
@@ -638,6 +948,12 @@ void Cpu::handleShiftImmediate(uint16_t instr)
 {
     this->decodedInstruction.shiftImmediateInstruction = ShiftImmediateInstruction(instr);
     this->decodeImmShiftResult = decodeImmShift(0b00, this->decodedInstruction.shiftImmediateInstruction.reserved);
+}
+
+void Cpu::handleShiftImmediate2(uint16_t instr, Decoded & decoded)
+{
+    decoded.decodedInstruction.shiftImmediateInstruction = ShiftImmediateInstruction(instr);
+    decoded.decodeImmShiftResult = decodeImmShift(0b00, this->decodedInstruction.shiftImmediateInstruction.reserved);
 }
 
 std::pair<uint32_t, bool> Cpu::LSL_C(uint32_t x, int shift)
@@ -709,9 +1025,22 @@ uint32_t Cpu::LSR(uint32_t x, int shift)
     return x >> shift;
 }
 
-void Cpu::BXWritePC(uint32_t address) {
 
-    // to be implemented
+
+
+void Cpu::BXWritePC(uint32_t address)
+{
+    if (currentMode == Mode::MODE_HANDLER && (address >> 28 & 0xF) == 0b1111)
+    {
+        std::cerr << "BXWritePC" << "exception return" << std::endl; 
+        while(1);   
+    //  ExceptionReturn(address<27:0>);
+    }
+    else
+    {
+        this->xpsr.setT(address & 0b1);
+        this->regs[15] = address & ~1u;
+    }
 }
 
 uint32_t Cpu::read32(uint32_t address) const
@@ -797,6 +1126,7 @@ void Cpu::executeMisc(void)
                 this->regs[13] = result.result;
             }
 
+            regs[15] += 2;
             break;
         }
 
@@ -806,61 +1136,75 @@ void Cpu::executeMisc(void)
             PushPopInstruction decoded = this->decodedInstruction._PushPopInstruction;
         
             bool M = decoded.M;    // LR (push) / PC (pop)
-            uint8_t register_list = decoded.register_list;
-
+            
             if (decoded.op) 
             {
-                fprintf(stderr, "POP\n");
-                uint32_t registers = register_list << 7;
+                uint16_t registers = decoded.register_list | (M << 15);
 
-                if (std::bitset<32>(registers).count() < 1)
+                fprintf(stderr, "POP\n");
+
+                if (std::bitset<16>(registers).count() < 1)
                 {
                     return;
-                }   
+                }
 
-                uint32_t address = this->getSP();
+                uint32_t address = this->regs[13];
 
-                for (uint8_t i = 0; i < 8 ; i++)
+                printf("Address: %x\n", address);
+                // Pop r0-r7
+                for (uint8_t i = 0; i < 8; i++)
                 {
-                    // Isolate the ith bit
-                    if (registers & (0b1 << i))
+                    if (registers & (1u << i))
                     {
-                        this->regs[i] = this->read32(address);
+                        this->regs[i] =
+                            this->read32(address);
+
                         address += 4;
                     }
                 }
 
-                if (registers & (0b1 << 15))
+                // Pop PC
+                if (M)
                 {
-                    this->BXWritePC(address);
+                    //printf("BXWRITE PC IN POP\n");
+                    //printf("%x\n", address);
+                    uint32_t value = this->read32(address);
+                    //printf("%d\n", value);
+                    this->BXWritePC(this->read32(address));
+                }
+                else
+                {
+                    this->regs[15] += 2;
                 }
 
-                this->regs[13] += (4 * std::bitset<32>(registers).count());
+                // Final SP after pops
+                this->regs[13] += 4 * std::bitset<16>(registers).count();
             } 
             else 
             {
+                uint16_t registers = decoded.register_list | (M << 14);
+
                 fprintf(stderr, "PUSH\n");
-               
 
-                //             0 : M : 000 000 : 0000 0000
-                //                               
-                uint32_t registers =  register_list | (M << 13);
+                uint32_t count =
+                    std::bitset<16>(registers).count();
 
+                uint32_t address = regs[13] - (4 * count);
 
-                uint32_t address = getSP() - (4 * std::bitset<32>(registers).count());
-
-                fprintf(stderr, "handleMisc(): adddress: %x\n", address);
-
-                for (int i = 0; i < 15; i++)
+                // Push in ascending register order
+                for (int i = 0; i <= 14; i++)
                 {
-                    if (register_list & (1 << i))
+                    if (registers & (1u << i))
                     {
                         write32(address, regs[i]);
                         address += 4;
                     }
                 }
 
-                this->regs[13] -= (4 * std::bitset<32>(registers).count());
+                // Final SP
+                regs[13] -= (4 * count);
+                printf("Address: %x\n", address);
+                regs[15] += 2;
             }
 
              break;
@@ -921,6 +1265,7 @@ void Cpu::executeMisc(void)
                 }
             }
 
+            regs[15] += 2;
             break;
         }
 
@@ -968,6 +1313,9 @@ void Cpu::executeMisc(void)
                     break; // UXTB;
                 }
             }
+
+            regs[15] += 2;
+
             break;
         }
         default:
@@ -976,10 +1324,77 @@ void Cpu::executeMisc(void)
     }
 }
 
+void Cpu::handleMisc2(uint16_t instr, Decoded & decoded)
+{
+    fprintf(stderr, "Handle MISC: \n");
+    // std::cout << std::hex << instr << std::endl;
+
+    if ((instr & 0xFFFF) == 0b1011111101000000) 
+    {
+        fprintf(stderr, "SEV\n");
+        decoded.misc_type = SEV;
+        return;
+    }
+
+    if ((instr & 0xFFFF) == 0b1011111100000000) 
+    {
+        fprintf(stderr, "NOP\n");
+      decoded.misc_type = NOP;
+        return;
+    }
+
+    if ((instr & 0xFFFF) == 0b1101111100000000) 
+    {
+        fprintf(stderr, "SVC Thumb1Instruction");
+         decoded.misc_type = SVC;
+        return;
+    }
+
+    if ((instr & 0b1111111111100000) == 0b1011011001100000) 
+    {
+        fprintf(stderr, "CPS\n");
+        decoded.misc_type = CPS;
+         decoded.decodedInstruction.cPSInstruction = CPSInstruction(instr);
+        return;
+    }
+
+    // ---- ADD / SUB SP ----
+    if ((instr & 0b1111111100000000) == 0b1011000000000000) 
+    {
+        decoded.misc_type = SUBADD;
+        decoded.decodedInstruction._AddSubSpInstruction = AddSubSpInstruction(instr);
+        return;
+    }
+
+    // // ---- PUSH / POP ----
+    if ((instr & 0b1111000000000000) == 0b1011000000000000) 
+    {
+        decoded.misc_type = PUSHPOP;
+        decoded.decodedInstruction._PushPopInstruction = PushPopInstruction(instr);
+        return;
+    }
+
+    // ---- EXTEND (UXTB/SXTB/UXTH/SXTH) ----
+    if ((instr & 0b1111110000000000) == 0b1011001000000000) 
+    {
+        decoded.misc_type = EXTEND;
+        decoded.decodedInstruction._ExtendInstruction = ExtendInstruction(instr);
+        return;
+    }
+
+    // REV family
+    if ((instr & 0b1111110000000000) == 0b1011101000000000) 
+    {
+        decoded.misc_type = REV;
+        decoded.decodedInstruction._RevInstruction = RevInstruction(instr);
+        return;
+    }
+} 
+
 void Cpu::handleMisc(uint16_t instr) 
 {
-    printf("Handle MISC: \n");
-    std::cout << std::hex << instr << std::endl;
+    fprintf(stderr, "Handle MISC: \n");
+    // std::cout << std::hex << instr << std::endl;
 
     if ((instr & 0xFFFF) == 0b1011111101000000) 
     {
@@ -997,7 +1412,7 @@ void Cpu::handleMisc(uint16_t instr)
 
     if ((instr & 0xFFFF) == 0b1101111100000000) 
     {
-        fprintf(stderr, "SVC Instruction");
+        fprintf(stderr, "SVC Thumb1Instruction");
         this->misc_type = SVC;
         return;
     }
@@ -1303,6 +1718,35 @@ void Cpu::executeMultiple()
         }
     }
 }
+
+
+// void Cpu::executeCondBranch()
+// {
+//     BranchCondInstruction decoded = this->decodedInstruction._BranchCondInstruction;
+
+//     uint8_t cond = decoded.cond;
+//     uint8_t imm8 = decoded.imm8;
+
+//     if (cond == 0b1110)
+//     {
+
+//     }
+//     else if (cond == 0b1111)
+//     {
+
+//     }
+
+//     int32_t imm32 = sign_extend(imm8 << 1, 9);
+
+//     if (conditionPassed(cond))
+//     {
+//         regs[15] = (regs[15] + 4 + imm32) & ~1;
+//     }
+//     else
+//     {
+//         this->regs[15] += 2;
+//     }
+// };
 
 void Cpu::executeCondBranch()
 {
@@ -1622,16 +2066,9 @@ void Cpu::executeALUinstr(void)
     }
 }
 
-void Cpu::executeSpecialInstructions(void)
+
+void Cpu::executeMovCmpAddSub2(const MovCmpAddSubInstruction & decoded)
 {
-    SpecialInstruction decoded = this->decodedInstruction._SpecialInstruction;
-
-}
-
-void Cpu::executeMovCmpAddSub(void)
-{
-    MovCmpAddSubInstruction decoded = this->decodedInstruction.movCmpAddSubInstruction;
-
     switch (decoded.op)
     {
         case 0b00: // MOVS Rd, #imm
@@ -1673,6 +2110,56 @@ void Cpu::executeMovCmpAddSub(void)
     }
 }
 
+void Cpu::executeMovCmpAddSub(void)
+{
+    MovCmpAddSubInstruction decoded = this->decodedInstruction.movCmpAddSubInstruction;
+
+    switch (decoded.op)
+    {
+        case 0b00: // MOVS Rd, #imm
+        {
+            fprintf(stderr, "MOV (imm)\n");
+            uint32_t imm32 = (uint32_t) decoded.imm8;
+            this->regs[decoded.d] = imm32;
+
+            setAPSRValues(xpsr.C(), ((imm32 >> 31) & 0b1), xpsr.V(), imm32 == 0);
+
+            break;
+        }
+
+        case 0b01: // CMP Rd, #imm
+        {
+
+            fprintf(stderr, "CMP (imm)\n");
+            uint32_t imm32 = (uint32_t) decoded.imm8;
+            // d == n here
+            const auto result = addWithCarry(this->regs[decoded.d], ~imm32, 1);
+
+            setAPSRValues(result.carry_out, (result.result >> 31) & 0b1, result.overflow, imm32 == 0);
+ 
+            break;
+        }
+
+        case 0b10: // ADDS Rd, #imm
+        {
+            fprintf(stderr, "ADD (imm)\n");
+            uint32_t imm32 = (uint32_t) decoded.imm8;
+            // d == n here
+            const auto result = addWithCarry(this->regs[decoded.d], imm32, 1);
+
+            setAPSRValues(result.carry_out, (result.result >> 31) & 0b1, result.overflow, imm32 == 0);
+            break;
+        }
+
+        case 0b11: // SUBS Rd, #imm
+        {
+
+
+            break;
+        }
+    }
+}
+
 void Cpu::executeLDRLiteral(void)
 {
     fprintf(stderr, "LDR Literal\n");
@@ -1698,7 +2185,12 @@ void Cpu::executeAddSub(void)
 
     uint8_t Rn = decoded.rn;
     uint8_t Rs = decoded.imm3;
-    uint8_t Rd = decoded.bits_10;
+    uint8_t Rd = decoded.rd;
+
+    fprintf(stderr, "Rd: %d\n", Rd);
+    fprintf(stderr, "Rn: %d\n", Rn);
+    fprintf(stderr, "imm3: %d\n", Rs);
+
 
     uint32_t operand2;
 
@@ -1713,7 +2205,7 @@ void Cpu::executeAddSub(void)
     if (Op == 0)
     {
         // ADD
-        printf("ADD\n");
+        fprintf(stderr, "ADD\n");
         auto res = addWithCarry(regs[Rn], operand2, 0);
 
         result = res.result;
@@ -1722,15 +2214,339 @@ void Cpu::executeAddSub(void)
     }
     else
     {
-        printf("SUB\n");
+        fprintf(stderr, "SUB\n");
         // SUB
         auto res = addWithCarry(regs[Rn], ~operand2, 1);
 
         result = res.result;
         setAPSRValues(res.carry_out, (result >> 31) & 1,res.overflow, (result == 0));
     }
+
     regs[Rd] = result;
     regs[15] += 2;
+}
+
+bool Cpu::execute2(Decoded decoded, uint32_t pc)
+{
+    bool branchTaken = false;
+
+    if (decoded.instructionType == THUMB2)
+    {   
+        fprintf(stderr, "executing 32 bit instruction\n");
+
+        switch(decoded.thumb2Class)
+        {
+            case BRANCH_MISC:
+            {
+                switch(decoded.branch_misc_type)
+                {
+                    case MRS_Instruction:
+                    {
+
+                        MRS inst = decoded.decodedThumb2Instruction._MRSInstruction;
+                        uint8_t sysm = inst.sysm;
+                        uint8_t d = inst.rd;
+
+                        switch ((sysm >> 3) & 0x1F)
+                        {
+                            case 0:
+                            {
+                                // APSR
+                                if ((sysm & 0b1) == 1)
+                                {
+                                    regs[d] = this->xpsr.apsr() & 0xFF;
+                                }
+                                else if ((sysm & (0b1 << 1)) == 1)
+                                {
+                                    regs[d] &= ~(1 << 24);
+                                }
+                                else if ((sysm & (0b1 << 2)) == 0)
+                                {
+                                    regs[d] = this->xpsr.apsr() & 0xF8000000;
+                                }
+                                break;
+                            }
+
+                            case 1:
+                            {
+                                if (this->currentModeIsPrivileged())
+                                {
+                                    switch (sysm & 0x7)
+                                    {
+                                        case 0:
+                                            regs[d] = msp;
+                                            break;
+
+                                        case 1:
+                                            regs[d] = psp;
+                                            break;
+                                    }
+                                }
+                                break;
+                            }
+
+                            case 2:
+                            {
+                                switch (sysm & 0x7)
+                                {
+                                    case 0:
+                                        regs[d] &= ~(currentModeIsPrivileged() ? (primask & 0b1) : 0);
+                                        break;
+
+                                    case 4:
+                                        regs[d] &= ~(control.nPRIV & 0b11);
+                                        break;
+                                }
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    case MSR_Instruction:
+                    {
+                        MSR inst = decoded.decodedThumb2Instruction._MSRInstruction;
+                        uint8_t sysm = inst.sysm;
+                        uint8_t n = inst.rn;
+
+                        uint32_t Rn = this->regs[n];
+
+                        switch ((sysm >> 3) & 0x1F)
+                        {
+                            //
+                            // APSR
+                            //
+                            case 0b00000:
+                            {
+                                if (((sysm >> 2) & 1) == 0)
+                                {
+                                    // APSR<31:27> = R[n]<31:27>
+                                    this->xpsr.setNZCVQ(Rn >> 27);
+                                }
+
+                                break;
+                            }
+
+                            //
+                            // MSP / PSP
+                            //
+                            case 0b00001:
+                            {
+                                if (currentModeIsPrivileged())
+                                {
+                                    switch (sysm & 0x7)
+                                    {
+                                        //
+                                        // MSP
+                                        //
+                                        case 0b000:
+                                        {
+                                            this->msp = Rn & ~0x3u;
+                                            break;
+                                        }
+
+                                        //
+                                        // PSP
+                                        //
+                                        case 0b001:
+                                        {
+                                            this->psp = Rn & ~0x3u;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            case 0b00010:
+                            {
+                                if (currentModeIsPrivileged())
+                                {
+                                    switch (sysm & 0x7)
+                                    {
+                                        //
+                                        // PRIMASK
+                                        //
+                                        case 0b000:
+                                        {
+                                            // FIX ME
+
+                                            std::cout << "FIX ME\n";
+                                            // this->primask = Rn & 1u;
+                                            break;
+                                        }
+
+                                        //
+                                        // CONTROL
+                                        //
+                                        case 0b100:
+                                        {
+                                            control.nPRIV = Rn & 1u;
+
+                                            if (currentMode == Mode::MODE_THREAD)
+                                            {
+                                                control.SPSEL =
+                                                    (Rn >> 1) & 1u;
+                                            }
+
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case UDF:
+                    {
+                        break;
+                    }
+                    case BL:
+                    {
+                        BranchLinkInstruction inst = decoded.decodedThumb2Instruction._BranchLinkInstruction;
+                    
+                        bool I1 = !(inst.J1 ^ inst.S);
+                        bool I2 = !(inst.J2 ^ inst.S);
+
+                        uint32_t imm25 =
+                            (inst.S  << 24) |
+                            (I1 << 23) |
+                            (I2 << 22) |
+                            (inst.imm10 << 12) |
+                            (inst.imm11 << 1);
+
+                        int32_t  imm32 = sign_extend(imm25, 25);
+
+                        uint32_t next = regs[15] + 4;
+                        fprintf(stderr,"BRANCH AND LINK: next pc: %d\n", next);
+                
+                                fprintf(stderr,"BRANCH AND LINK\n imm32: %d\n", imm32);
+
+                        regs[14] = next | 1;
+
+                        regs[15] = next + imm32;
+
+                        fprintf(stderr,"BRANCH AND LINK\n regs[15: %d\n", regs[15]);
+                        break;   
+                    }
+                    default:
+                        break;
+
+                }
+                // 1111 1000 0001 0000       1111 0000 0000 000
+                break;
+            }
+
+
+            default:
+                break;
+            // case 0b11101:
+
+            // BL
+            // case 0b11110:
+            // {
+
+
+            // case 0b11111:
+            //     // 32 bit thumb mode
+            //     // 
+            //     break;
+        }
+    }
+    else
+    {  
+        fprintf(stderr, "Executing 16bit\n");
+         switch (decoded.instructionClass)
+        {
+            case InstrClass::SHIFT_IMM:
+                executeShiftImmediate();
+                std::cerr << "SHIFT_IMM\n";
+                break;
+
+            case InstrClass::ADD_SUB:
+                executeAddSub();
+                std::cerr << "ADD_SUB\n";
+                break;
+
+            case InstrClass::MOV_CMP_ADD_SUB:
+                executeMovCmpAddSub2(decoded.decodedInstruction.movCmpAddSubInstruction);
+                std::cerr << "MOV_CMP_ADD_SUB\n";
+                this->regs[15] += 2;
+                break;
+
+            case InstrClass::ALU:
+                executeALUinstr();
+                this->regs[15] += 2;
+                std::cerr << "ALU\n";
+                break;
+
+            case InstrClass::HI_REG:
+                executeSpecialInstructions();
+                std::cerr << "HI_REG\n";
+                break;
+
+            case InstrClass::LDR_LITERAL:
+                std::cerr << "LDR_LITERAL\n";
+                executeLDRLiteral();
+                this->regs[15] += 2;
+                break;
+
+            case InstrClass::LOAD_STORE_REG:
+                executeLoadStoreReg();
+                std::cerr << "LOAD_STORE_REG\n";
+                this->regs[15] += 2;
+                break;
+
+            case InstrClass::LOAD_STORE_IMM:
+                executeLoadStoreImm();
+                this->regs[15] += 2;
+                std::cerr << "LOAD_STORE_IMM\n";
+                break;
+
+            case InstrClass::LOAD_STORE_HALF:
+                executeLoadStoreHalf();
+                this->regs[15] += 2;
+                std::cerr << "LOAD_STORE_HALF\n";
+                break;
+
+            case InstrClass::SP_REL:
+                executeSpRelative();
+                this->regs[15] += 2;
+                break;
+
+            case InstrClass::ADDR:
+                std::cerr << "ADDR\n";
+                executeAdr();
+                this->regs[15] += 2;
+                break;
+
+            case InstrClass::MISC:
+                std::cerr << "MISC\n";
+                executeMisc();
+                // this->regs[15] += 2;
+                break;
+
+            case InstrClass::MULTIPLE:
+                executeMultiple();
+                this->regs[15] += 2;
+                std::cerr << "MULTIPLE\n";
+                break;
+
+            case InstrClass::COND_BRANCH:
+                executeCondBranch();
+                std::cerr << "COND_BRANCH\n";
+                break;
+
+            case InstrClass::UNCOND_BRANCH:
+                executeUncondBranch();
+                std::cerr << "UNCOND_BRANCH\n";
+                break;
+
+            case InstrClass::UNKNOWN:
+            default:
+                std::cerr << "UNKNOWN\n";
+                break;
+        }     
+    }
+
+    return branchTaken;
 }
 
 void Cpu::execute(void)
@@ -1984,7 +2800,6 @@ void Cpu::execute(void)
 
             case InstrClass::HI_REG:
                 executeSpecialInstructions();
-                this->regs[15] += 2;
                 std::cerr << "HI_REG\n";
                 break;
 
@@ -2026,7 +2841,7 @@ void Cpu::execute(void)
             case InstrClass::MISC:
                 std::cerr << "MISC\n";
                 executeMisc();
-                this->regs[15] += 2;
+                // this->regs[15] += 2;
                 break;
 
             case InstrClass::MULTIPLE:
@@ -2053,18 +2868,23 @@ void Cpu::execute(void)
     }
 }
 
-void Cpu::decode(void)
+#include <unordered_map>
+
+Decoded Cpu::decode2(uint32_t instruction)
 {
-    uint32_t instruction = this->fetched_instruction;
+    Decoded decoded = {};
+
     uint8_t format_id = (instruction >> 11) & 0x1F;   
 
-    std::cerr << "PC" << this->regs[15] << std::endl;
+    std::unordered_map<uint8_t, uint32_t> registers_read;
 
-    if (is32bitInstruction(format_id))
+
+    if (is32bitInstruction(instruction))
     {
-        this->instructionType = THUMB2;
-        this->decodedInstructionSize = 4;
-        std::cerr << "Instruction:" << std::bitset<32>(instruction) << std::endl;
+        decoded.instructionType = THUMB2;
+    
+        std::cerr << "Thumb1Instruction:" << std::bitset<32>(instruction) << std::endl;
+        
         switch (format_id)
         {
             case 0b11101:
@@ -2085,17 +2905,221 @@ void Cpu::decode(void)
                 // MSR
                 if ((op1 & 0b1111110) == 0b0111000 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
                 {
+                    uint8_t n = second & 0x7;
+                    uint8_t sysm = first & 0xFF;
+
+                    decoded.decodedThumb2Instruction._MSRInstruction = MSR(n, sysm);
+                    decoded.thumb2Class = BRANCH_MISC;
+                    decoded.branch_misc_type = MSR_Instruction;
+                
+                }
+                // ISB, DMS, DMB
+                else if ((op1 & 0b1111111) == 0b0111011 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
+                {
+                    uint8_t op = (first >> 4) & 0xF;
+                    uint8_t option = first & 0xF;
+                    uint8_t second_bits_0_4 = second & 0xF;
+                    uint8_t first_bits_11_8 = (first >> 8) & 0xF;
+
+                    if (second_bits_0_4 != 0xF || first_bits_11_8 != 0xF)
+                    {
+                        // Should not happen;
+                        return Decoded { };
+                    }
+
+                    switch (op)
+                    {
+                        case 0b0100:
+                            decoded.decodedThumb2Instruction._DSBInstruction = DSB(option);
+                            decoded.thumb2Class = BRANCH_MISC;
+                            decoded.branch_misc_type = BL;
+
+                            break;
+
+                        case 0b0101:
+                            decoded.decodedThumb2Instruction._DMBInstruction = DMB(option);
+                            decoded.thumb2Class = BRANCH_MISC;
+                            decoded.branch_misc_type = BL;
+                            break;
+
+                        case 0b0110:
+                            decoded.decodedThumb2Instruction._ISBInstruction = ISB(option);
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+                // MRS
+                else if ((op1 & 0b1111110) == 0b0111110 &&  ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
+                {
+                    decoded.decodedThumb2Instruction._MRSInstruction = MRS(second & 0x7, first & 0xFF);
+                    decoded.thumb2Class = BRANCH_MISC;
+                    decoded.branch_misc_type = MRS_Instruction;
+                                        // uint8_t d = second & 0x7;
+                    // uint8_t sysm = first & 0xFF;         
+                }
+                else if ((op1 & 0b1111111) == 0b1111111 && op2 == 0b010)
+                {
+                    // undefined
+                }
+                else if (((op2 & 0b001) | (op2 & 0b100)) == 0b101)
+                {
+                    fprintf(stderr,"BRANCH AND LINK\n");
+                    decoded.decodedThumb2Instruction._BranchLinkInstruction = BranchLinkInstruction(instruction);
+                    decoded.thumb2Class = BRANCH_MISC;
+                    decoded.branch_misc_type = BL;
+                }
+                break;
+            }
+            case 0b11111:
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        decoded.instructionType = THUMB1;
+        decoded.instructionClass = classify(instruction);
+        std::cerr << "Thumb1Instruction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
+        std::cerr << "Class: " << static_cast<int>( decoded.instructionClass) << std::endl;
+
+        switch ( decoded.instructionClass)
+        {
+            case InstrClass::SHIFT_IMM:
+                handleShiftImmediate2(instruction, decoded);
+                break;
+
+            case InstrClass::ADD_SUB:
+                decoded.decodedInstruction._AddSubImmediateInstruction =
+                    AddSubImmediateInstruction(instruction);
+                break;
+
+            case InstrClass::MOV_CMP_ADD_SUB:
+                            decoded.decodedInstruction.movCmpAddSubInstruction =
+                    MovCmpAddSubInstruction(instruction);
+            // {
+            //     uint32_t imm32 = instruction & 0xFF;
+            //     uint8_t d = (instruction >> 8) & 0x7;
+                
+
+            //     // op = blah blah
+            //     registers_read.emplace(d, regs[d]);
+
+            //     break;
+            // }
+
+                break;
+
+            case InstrClass::ALU:
+                decoded.decodedInstruction._ALUInstruction =
+                    ALUInstruction(instruction);
+                break;
+
+            case InstrClass::HI_REG:
+                this->handleSpecialInstructions2(instruction, decoded);
+                break;
+
+            case InstrClass::LDR_LITERAL:
+                decoded.decodedInstruction.lDRLiteralInstruction = LDRLiteralInstruction(instruction);
+                break;
+
+            case InstrClass::LOAD_STORE_REG:
+                decoded.decodedInstruction.loadStoreRegInstruction = LoadStoreRegInstruction(instruction);
+                break;
+
+            case InstrClass::LOAD_STORE_IMM:
+                decoded.decodedInstruction.loadStoreImmInstruction = 
+                    LoadStoreImmInstruction(instruction);
+                break;
+
+            case InstrClass::LOAD_STORE_HALF:
+                decoded.decodedInstruction.loadStoreHalfInstruction = 
+                    LoadStoreHalfInstruction(instruction);
+                break;
+
+            case InstrClass::SP_REL:
+                decoded.decodedInstruction.SpRelativeInstruction = 
+                    SpRelativeInstruction(instruction);
+                break;
+
+            case InstrClass::ADDR:
+                decoded.decodedInstruction.adrInstruction = 
+                    AdrInstruction(instruction);
+                break;
+
+            case InstrClass::MISC:
+                handleMisc2(instruction, decoded);
+                break;
+
+            case InstrClass::MULTIPLE:
+                decoded.decodedInstruction._LoadMultipleInstruction = 
+                    LoadMultipleInstruction(instruction);
+                break;
+
+            case InstrClass::COND_BRANCH:
+                decoded.decodedInstruction._BranchCondInstruction =
+                    BranchCondInstruction(instruction);
+                break;
+
+            case InstrClass::UNCOND_BRANCH:
+                decoded.decodedInstruction._BranchUncondInstruction =
+                    BranchUncondInstruction(instruction);
+                break;
+
+            case InstrClass::UNKNOWN:
+            default:
+                std::cerr << "UNKNOWN\n";
+                break;
+        }     
+    }
+
+    return decoded;
+}
 
 
+void Cpu::decode(void)
+{
+    uint32_t instruction = this->fetched_instruction;
+    uint8_t format_id = (instruction >> 11) & 0x1F;   
+
+    std::cerr << "PC" << this->regs[15] << std::endl;
+
+    if (is32bitInstruction(format_id))
+    {
+        this->instructionType = THUMB2;
+        this->decodedInstructionSize = 4;
+
+        std::cerr << "Thumb1Instruction:" << std::bitset<32>(instruction) << std::endl;
+        
+        switch (format_id)
+        {
+            case 0b11101:
+            {
+                break;
+            }
+
+            // BL
+            case 0b11110:
+            {
+                // 1111 1000 0001 0000       1111 0000 0000 0000
+                uint8_t op1 = (instruction >> 20) & 0x7F;
+                uint8_t op2 = (instruction >> 12) & 0b111;
+
+                uint16_t first  = instruction & 0xFFFF;
+                uint16_t second = instruction >> 16;
+
+                // MSR
+                if ((op1 & 0b1111110) == 0b0111000 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
+                {
                     uint8_t n = second & 0x7;
                     uint8_t sysm = first & 0xFF;
 
                     this->decodedThumb2Instruction._MSRInstruction = MSR(n, sysm);
                     this->thumb2Class = BRANCH_MISC;
                     this->branch_misc_type = MSR_Instruction;
-                  
                 
-
                 }
                 // ISB, DMS, DMB
                 else if ((op1 & 0b1111111) == 0b0111011 && ((op2 & 0b001) | (op2 & 0b100)) == 0b000)
@@ -2155,13 +3179,11 @@ void Cpu::decode(void)
                     this->branch_misc_type = BL;
                 }
                 break;
-
             }
             case 0b11111:
-                // 32 bit thumb mode
-                // 
+            {
                 break;
-
+            }
         }
     }
     else
@@ -2170,10 +3192,12 @@ void Cpu::decode(void)
         this->instructionType = THUMB1;
         InstrClass instructionClass = classify(instruction);
         this->instructionClass = instructionClass;
-        std::cerr << "Instruction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
-        std::cerr << "Instruction:" << std::hex << ((uint16_t)instruction) << std::endl;
-        std::cerr << "Classified" << std::endl;
-        std::cerr << static_cast<int>(instructionClass) << std::endl;
+        // printf("%d ", this->regs[15]);
+        // std::cout << " Thumb1Instruction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
+        std::cerr << "Thumb1Instruction:" << std::bitset<16>((uint16_t)instruction) << std::endl;
+        // std::cerr << "Thumb1Instruction:" << std::hex << ((uint16_t)instruction) << std::endl;
+        // std::cerr << "Classified" << std::endl;
+        std::cerr << "Class: " << static_cast<int>(instructionClass) << std::endl;
 
         switch (instructionClass)
         {
@@ -2197,8 +3221,7 @@ void Cpu::decode(void)
                 break;
 
             case InstrClass::HI_REG:
-                this->decodedInstruction._SpecialInstruction =
-                    SpecialInstruction(instruction);
+                this->handleSpecialInstructions(instruction);
                 break;
 
             case InstrClass::LDR_LITERAL:
@@ -2259,24 +3282,31 @@ void Cpu::decode(void)
     }
 }
 
-void Cpu::print_state(void) const
-{
-    fprintf(stderr, "\n--- CPU STATE ---\n");
 
-    for(uint8_t i = 0; i < 16; i++)
+void Cpu::print_state(FILE* out) const
+{
+    fprintf(out, "\n--- CPU STATE ---\n");
+
+    for (uint8_t i = 0; i < 16; i++)
     {
-        fprintf(stderr, "r%-2d: 0x%08X    ", i, this->regs[i]);
-        
-        // Every 4 registers, print a newline to maintain the grid
-        if ((i + 1) % 4 == 0) {
-            printf("\n");
+        fprintf(out, "r%-2d: 0x%08X    ", i, this->regs[i]);
+
+        // Every 4 registers, print a newline
+        if ((i + 1) % 4 == 0)
+        {
+            fprintf(out, "\n");
         }
     }
 
-    fprintf(stderr, "-----------------\n");
-    fprintf(stderr, "FLAGS: [ aspr_N:%d | apsr_Z:%d | apsr_C:%d | apsr_V:%d ]\n", 
-            this->xpsr.N(), this->xpsr.Z(), this->xpsr.C(), this->xpsr.V());
-    fprintf(stderr, "-----------------\n\n");
+    fprintf(out, "-----------------\n");
+    fprintf(out,
+            "FLAGS: [ apsr_N:%d | apsr_Z:%d | apsr_C:%d | apsr_V:%d ]\n",
+            this->xpsr.N(),
+            this->xpsr.Z(),
+            this->xpsr.C(),
+            this->xpsr.V());
+
+    fprintf(out, "-----------------\n\n");
 }
 
 uint32_t Cpu::returnAddress(int exceptionType)
@@ -2428,7 +3458,7 @@ void Cpu::exceptionTaken(int32_t exceptionNumber)
     // Wake Event Register
     // SetEventRegister();
 
-    // Instruction Synchronization Barrier
+    // Thumb1Instruction Synchronization Barrier
     // InstructionSynchronizationBarrier(0xF);
 
     // Load vector table base
@@ -2483,7 +3513,7 @@ void Cpu::reset()
     VTOR = 0;
     for (int i = 0; i <= 12; i++)
     {
-        regs[i] = 0xDEEDBEEF; // placeholder unknown value
+        regs[i] = 0xBEEFBEEF; // placeholder unknown value
     }
 
     uint32_t vectortable = VTOR;
@@ -2673,7 +3703,7 @@ void Cpu::exceptionReturn(uint32_t EXC_RETURN)
     // SetEventRegister();
 
     //------------------------------------------------------
-    // Instruction synchronization barrier
+    // Thumb1Instruction synchronization barrier
     //------------------------------------------------------
     // InstructionSynchronizationBarrier();
 

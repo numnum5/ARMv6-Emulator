@@ -22,6 +22,12 @@ int main(int argc, char ** argv)
 
     Emulator emu;
 
+
+    // Cpu cpu(0x1000, 0x1000);
+
+
+    // cpu.test();
+
     emu.load_elf("firmware.elf");
     emu.startCpu();
 }

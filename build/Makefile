@@ -225,6 +225,30 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/organised.o: src/organised.cpp.o
+.PHONY : src/organised.o
+
+# target to build an object file
+src/organised.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/organised.cpp.o
+.PHONY : src/organised.cpp.o
+
+src/organised.i: src/organised.cpp.i
+.PHONY : src/organised.i
+
+# target to preprocess a source file
+src/organised.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/organised.cpp.i
+.PHONY : src/organised.cpp.i
+
+src/organised.s: src/organised.cpp.s
+.PHONY : src/organised.s
+
+# target to generate assembly for a file
+src/organised.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/organised.cpp.s
+.PHONY : src/organised.cpp.s
+
 src/registers.o: src/registers.cpp.o
 .PHONY : src/registers.o
 
@@ -294,6 +318,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/organised.o"
+	@echo "... src/organised.i"
+	@echo "... src/organised.s"
 	@echo "... src/registers.o"
 	@echo "... src/registers.i"
 	@echo "... src/registers.s"

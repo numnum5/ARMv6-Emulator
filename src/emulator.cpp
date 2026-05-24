@@ -17,7 +17,10 @@ void Emulator::startCpu(void)
 
     std::cout << "RUNNING CODE OUTPUT:" << std::endl <<  std::endl;
 
-
+    cpu.test();
+    // printf("%c\n", cpu.flash[0x0000031c]);
+    // printf("%c\n", cpu.flash[0x0000031d]);
+    // printf("%c\n", cpu.flash[0x0000031e]);
 // for (int i = 0; i < 400; i += 2)
 // {
 //     printf("PC: %d\n", i);
@@ -30,27 +33,27 @@ void Emulator::startCpu(void)
 // }
 
     // for(;;)
-    for (int i = 0 ; i < 104; i++)
-    {
-        cpu.currentInstrAddr = cpu.regs[15];
-        fprintf(stderr, "PC: %d\n", cpu.regs[15]);
+    // for (int i = 0 ; i < 200; i++)
+    // {
+    //     cpu.currentInstrAddr = cpu.regs[15];
+    //     fprintf(stderr, "PC: %d\n", cpu.regs[15]);
 
-        cpu.fetch();
-        cpu.tick();
-        cpu.handleAsyncrnousExceptions();
-        cpu.decode();    
-        cpu.tick();
-        cpu.nextInstrAddr = cpu.currentInstrAddr + cpu.decodedInstructionSize;
-        cpu.handleAsyncrnousExceptions();
-        cpu.execute();
-        cpu.tick();
-        // Leave current isnt addr as it is the same 
-        // cpu.nextInstrAddr = cpu.regs[15];
-        cpu.handleSyncrnousExceptions();
-        cpu.handleAsyncrnousExceptions();
-        // cpu.print_state();
-    }
-    cpu.print_state();
+    //     cpu.fetch();
+    //     cpu.tick();
+    //     cpu.handleAsyncrnousExceptions();
+    //     cpu.decode();    
+    //     cpu.tick();
+    //     cpu.nextInstrAddr = cpu.currentInstrAddr + cpu.decodedInstructionSize;
+    //     cpu.handleAsyncrnousExceptions();
+    //     cpu.execute();
+    //     cpu.tick();
+    //     // Leave current isnt addr as it is the same 
+    //     // cpu.nextInstrAddr = cpu.regs[15];
+    //     cpu.handleSyncrnousExceptions();
+    //     cpu.handleAsyncrnousExceptions();
+    //     // cpu.print_state();
+    // }
+    // cpu.print_state();
 }
 
 void Emulator::write_block(uint32_t addr,
@@ -176,6 +179,7 @@ void Emulator::load_elf(const std::string& path)
     // Part of the reset behaviour but it is elf loading section (FIX ME)
     cpu.msp = cpu.read32Flash(0x0);
     cpu.regs[15] = cpu.read32Flash(0x4) & ~1;
+    cpu.fetch_pc = cpu.read32Flash(0x4) & ~1;
 
     std::cout << "Initial SP: 0x" << std::hex << cpu.regs[13] << "\n";
     std::cout << "Reset PC : 0x" << std::hex << cpu.regs[15] << "\n";

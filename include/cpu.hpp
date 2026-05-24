@@ -7,6 +7,147 @@
 #include "registers.hpp"
 
 using bit = bool;
+enum class Opcode : uint16_t
+{
+    INVALID,
+
+    //
+    // Branch / control flow
+    //
+    B,
+    B_COND,
+    BL,
+    BLX,
+    BX,
+
+    //
+    // Arithmetic / data processing
+    //
+    ADC,
+
+    ADD_REG,
+    ADD_IMM_T1,
+    ADD_IMM_T2,
+    ADD_SP_T1,
+
+    ADR,
+
+    AND,
+
+    ASR_IMM,
+    ASR_REG,
+
+    BIC,
+
+    CMN,
+
+    CMP_REG,
+    CMP_IMM,
+
+    EOR,
+
+    LSL_IMM,
+    LSL_REG,
+
+    LSR_IMM,
+    LSR_REG,
+
+    MOV_IMM,
+    MOV_REG,
+
+    MUL,
+    MVN,
+    NEG,
+    ORR,
+    ROR,
+    RSB,
+    SBC,
+
+    SUB_REG,
+    SUB_IMM_T1,
+    SUB_IMM_T2,
+
+    TST,
+
+    //
+    // Load / store
+    //
+    LDR_LITERAL,
+
+    LDR_IMM,
+    LDR_IMM_T2,
+    LDR_REG,
+
+    LDRB,
+    LDRB_IMM,
+
+    LDRH,
+    LDRH_IMM,
+
+    LDRSB,
+    LDRSH,
+
+    STR_IMM,
+    STR_IMM_T2,
+    STR_REG,
+
+    STRB_REG,
+    STRB_IMM,
+
+    STRH_REG,
+    STRH_IMM,
+
+    //
+    // Multiple register transfer
+    //
+    LDMIA,
+    STMIA,
+    PUSH,
+    POP,
+
+    //
+    // System register access
+    //
+    MRS,
+    MSR,
+
+    //
+    // Exception / system
+    //
+    BKPT,
+    SVC,
+
+    //
+    // Barriers
+    //
+    DMB,
+    DSB,
+    ISB,
+
+    //
+    // Misc / hints
+    //
+    CPS,
+    NOP,
+    SEV,
+    WFE,
+    WFI,
+    YIELD,
+
+    //
+    // Extend / byte manipulation
+    //
+    REV,
+    REV16,
+    REVSH,
+
+    SXTB,
+    SXTH,
+    UXTB,
+    UXTH,
+    SUB_SP_T1,
+    ADD_SP_T2
+};
 
 enum class InstrClass {
     SHIFT_IMM,        // LSL, LSR, ASR
@@ -93,22 +234,69 @@ struct ShiftImmediateInstruction
     }
 };
 
-struct SpecialInstruction
+enum class SpecialOp : uint8_t
 {
-    uint16_t bits_0_2 : 3;
-    uint16_t rm : 3;
-    uint16_t bits_7 : 1;
-    uint16_t opcode : 2;
-    uint16_t identifier : 6;
-      SpecialInstruction() = default;
-    SpecialInstruction(uint16_t instr)
-    {
-        bits_0_2 = instr & 0x7;
-        rm = (instr >> 3) & 0x7;
-        bits_7 = (instr >> 6) & 0x1;
-        opcode = (instr >> 7) & 0x3;
-        identifier = (instr >> 9) & 0x3F;
-    }
+    ADD,
+    CMP,
+    MOV,
+    BX_BLX
+};
+struct AddHighInstruction
+{
+    uint8_t d;
+    uint8_t m;
+
+    AddHighInstruction() = default;
+
+    AddHighInstruction(uint8_t d, uint8_t m)
+        : d(d), m(m)
+    {}
+};
+
+struct CmpHighInstruction
+{
+    uint8_t rn;
+    uint8_t rm;
+
+    CmpHighInstruction() = default;
+
+    CmpHighInstruction(uint8_t rn, uint8_t rm)
+        : rn(rn), rm(rm)
+    {}
+};
+
+struct MovHighInstruction
+{
+    uint8_t d;
+    uint8_t m;
+
+    MovHighInstruction() = default;
+
+    MovHighInstruction(uint8_t d, uint8_t m)
+        : d(d), m(m)
+    {}
+};
+
+struct BranchExchangeInstruction
+{
+    uint8_t rm;
+    bool blx;
+
+    BranchExchangeInstruction() = default;
+
+    BranchExchangeInstruction(uint8_t rm, bool blx)
+        : rm(rm), blx(blx)
+    {}
+};
+
+union SpecialInstruction
+{
+    AddHighInstruction add;
+    CmpHighInstruction cmp;
+    MovHighInstruction mov;
+    BranchExchangeInstruction bx;
+
+    // SpecialInstruction() {}
 };
 
 struct MovCmpAddSubInstruction
@@ -117,7 +305,7 @@ struct MovCmpAddSubInstruction
     uint16_t d : 3;
     uint16_t op : 2;
     uint16_t identifier: 3;
-      MovCmpAddSubInstruction() = default;
+    MovCmpAddSubInstruction() = default;
     MovCmpAddSubInstruction(uint16_t instr)
     {
         imm8 = instr & 0xFF;
@@ -167,10 +355,12 @@ struct AddSubImmediateInstruction
     uint16_t bits_9 : 1;
     uint16_t bits_10 : 1;
     uint16_t identifier : 5;
+
     AddSubImmediateInstruction() = default;
     AddSubImmediateInstruction(uint16_t instruction)
     {
-        rd         = (instruction >> 0)  & 0x7;
+        // 0b0001110111111011
+        rd         = (instruction) & 0x7;
         rn         = (instruction >> 3)  & 0x7;
         imm3       = (instruction >> 6)  & 0x7;
         bits_9     = (instruction >> 9)  & 0x1;
@@ -400,10 +590,10 @@ enum InstructionClassThumb2
     BRANCH_MISC
 };
 
-union Instruction
+union Thumb1Instruction
 {
     struct ShiftImmediateInstruction shiftImmediateInstruction;
-    struct SpecialInstruction _SpecialInstruction;
+    SpecialInstruction _SpecialInstruction;
     struct MovCmpAddSubInstruction movCmpAddSubInstruction;
     struct LoadStoreRegInstruction loadStoreRegInstruction;
     struct LDRLiteralInstruction lDRLiteralInstruction;
@@ -668,12 +858,110 @@ enum ExceptionType
     EXCEPTION_PENDSV    = 14,
     EXCEPTION_SYSTICK   = 15
 };
+struct FetchStage
+{
+    bool valid = false;
+    uint32_t pc_out = 0;
+    uint32_t instruction_out = 0;
+    uint32_t size = 0;
+    void update(uint32_t pc_in, uint32_t instruction_in)
+    {
+        this->pc_out = pc_in;
+        this->instruction_out = instruction_in;
+    }
+};
+
+
+struct Decoded
+{
+    InstructionType instructionType; // thumb1 or thumb2
+    Thumb2Instruction decodedThumb2Instruction;
+    Thumb1Instruction decodedInstruction;
+    InstructionClassThumb2 thumb2Class;
+    InstrClass instructionClass;
+    DecodeImmShiftResult decodeImmShiftResult;
+    Misc_type misc_type;
+    Branch_misc_type branch_misc_type;
+    SpecialOp specialOpType;
+
+    uint8_t n;
+    uint8_t m;
+    uint8_t d;
+    uint8_t t;
+
+};
+
+// Pipeline Registers (Latches between stages)
+typedef struct {
+    uint32_t instruction;
+    uint32_t pc;
+    bool stall;
+    bool valid;
+} FetchDecodeLatch;
+
+#include <unordered_map>
+
+enum class Execute : uint8_t
+{
+    ALU,
+    MEMORY
+};
+
+
+enum PopState
+{
+    TRANSFER,
+    SETUP,
+};
+
+
+typedef struct {
+    Opcode opcode;
+    uint32_t pc;
+    uint32_t branch_pc;
+    // Decoded decoded;
+    uint8_t destination;
+    uint32_t rd;
+    uint32_t imm32;
+    uint8_t n;
+    uint8_t m;
+    uint8_t t;
+    std::vector<uint8_t> registers_push_pop;
+    uint16_t register_list_count;
+    uint16_t register_list; 
+    std::unordered_map<uint8_t, uint32_t> registers_read;
+    Execute state;
+    SRType shift_t;
+    uint8_t shift_n;
+    uint32_t write_address;
+
+    uint8_t cond;
+    PopState popState;
+    bool push_pop_M;
+    bool valid;
+    bool reg_write;
+    bool reg_read;
+    bool mem_read;
+    bool mem_write;
+    bool wback;
+
+} DecodeExecuteLatch;
+
+struct Pipeline
+{
+    FetchDecodeLatch   FD_latch;
+    DecodeExecuteLatch DE_latch;
+};
+
+
 
 class Cpu
-{
+{  
     public:
         static constexpr uint32_t FLASH_BASE = 0x00000000;
         static constexpr uint32_t FLASH_SIZE = 64 * 1024;                    
+        //  static constexpr uint32_t RAM_BASE   = 0x00000000;
+
         static constexpr uint32_t RAM_BASE   = 0x20000000;
         static constexpr uint32_t RAM_SIZE   = 16 * 1024;
 
@@ -705,7 +993,7 @@ class Cpu
         Thumb2Instruction decodedThumb2Instruction;
         InstructionClassThumb2 thumb2Class;
     
-        Instruction decodedInstruction;
+        Thumb1Instruction decodedInstruction;
         InstrClass instructionClass;
         
         DecodeImmShiftResult decodeImmShiftResult;
@@ -714,10 +1002,50 @@ class Cpu
 
         Branch_misc_type branch_misc_type;
         
+        SpecialOp specialOpType;
+
         InstructionType instructionType;
 
         uint32_t fetched_instruction;
         uint32_t VTOR;
+
+
+    uint32_t fetch_pc;
+
+
+
+
+
+    Pipeline pipeline;
+    FetchDecodeLatch   FD_latch = {};
+    DecodeExecuteLatch DE_latch = {};
+            bool execute22 = false;
+        bool stall = false;
+        bool flush = false;
+
+        uint32_t branch_pc;
+        uint32_t cycle;
+        bool branch_taken = false;
+    
+uint32_t BXWritePC2(uint32_t address);
+void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next);
+void executeMovCmpAddSub2(const MovCmpAddSubInstruction & decoded);
+ void test();
+ Opcode decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1);
+ 
+Opcode decode_alu(uint8_t opcode);
+ Opcode decode_load_store_reg(uint8_t opcode);
+ Opcode decode_load_store_half(bool opcode);
+Opcode decode_load_store_imm(uint8_t opcode);
+ bool stage_execute(Pipeline& next);
+ void stage_decode(Pipeline& next);
+ void stage_fetch(uint8_t* flash, Pipeline& next);
+ uint32_t pc_adder(Pipeline & next);
+  void commit(Pipeline & next);
+   void handle_32bit_instruction(uint32_t instruction, DecodeExecuteLatch & decode);
+   void decode_final(Pipeline & next, uint32_t instruction, std::unordered_map<uint8_t, uint32_t> & registers_read);
+Opcode decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unordered_map<uint8_t, uint32_t> & registers_read);
+
 
         Cpu(size_t ram_size, size_t flash_size);
         void setPrimaskPM(bool value);
@@ -748,8 +1076,11 @@ class Cpu
         InstrClass classify(uint16_t instr);
 
         bool inITBlock(void);
-        bool is32bitInstruction(uint8_t thumb_mode);
+        bool is32bitInstruction(uint32_t instruction);
 
+        void handleMisc2(uint16_t instr, Decoded & decoded);
+        void handleSpecialInstructions2(uint16_t instruction, Decoded & decoded);
+        void handleShiftImmediate2(uint16_t instr, Decoded & decoded);
         void handleShiftImmediate(uint16_t instr);
         void handleMisc(uint16_t instr);
 
@@ -782,6 +1113,7 @@ class Cpu
         uint32_t LSL(uint32_t x, int shift);
         uint32_t returnAddress(int exceptionType);
 
+        void ALUWritePC(uint32_t address);
         void pushStack(int ExceptionType);
         void exceptionTaken(int32_t exceptionNumber);
         void BLXWritePC(uint32_t address);
@@ -791,12 +1123,15 @@ class Cpu
         void handleAsyncrnousExceptions(void);
 
         // The 3 stages of the CPU processing
-        void fetch(void);
+        uint32_t fetch(void);
+        uint32_t fetch2(uint32_t pc);
+        Decoded decode2(uint32_t instruction);
+        bool execute2(Decoded decoded, uint32_t pc);
         void decode(void);
         void execute(void);
-        void print_state(void) const;
+        void print_state(FILE* out = stderr) const;
         void deActivate(uint32_t exceptionNumber);
-
+void print_mem();
         void reset(void);
         void exceptionReturn(uint32_t EXC_RETURN);
         void PopStack(uint32_t frameptr, uint32_t EXC_RETURN);

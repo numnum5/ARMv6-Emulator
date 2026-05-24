@@ -6,7 +6,6 @@ MEMORY
     RAM(rwx)  : ORIGIN = 0x20000000, LENGTH = 4K
 }
 
-
 SECTIONS
 {
     .text :
@@ -34,6 +33,10 @@ SECTIONS
         *(COMMON)
         _ebss = .;
     } > RAM
+
+    /* Heap region */
+    _sheap = .;
+    _eheap = ORIGIN(RAM) + LENGTH(RAM) - 0x400;
 
     /* Stack top */
     _estack = ORIGIN(RAM) + LENGTH(RAM);

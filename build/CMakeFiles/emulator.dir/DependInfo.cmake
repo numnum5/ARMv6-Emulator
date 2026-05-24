@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/numnum/emulator/src/cpu.cpp" "CMakeFiles/emulator.dir/src/cpu.cpp.o" "gcc" "CMakeFiles/emulator.dir/src/cpu.cpp.o.d"
   "/home/numnum/emulator/src/emulator.cpp" "CMakeFiles/emulator.dir/src/emulator.cpp.o" "gcc" "CMakeFiles/emulator.dir/src/emulator.cpp.o.d"
   "/home/numnum/emulator/src/main.cpp" "CMakeFiles/emulator.dir/src/main.cpp.o" "gcc" "CMakeFiles/emulator.dir/src/main.cpp.o.d"
+  "/home/numnum/emulator/src/organised.cpp" "CMakeFiles/emulator.dir/src/organised.cpp.o" "gcc" "CMakeFiles/emulator.dir/src/organised.cpp.o.d"
   "/home/numnum/emulator/src/registers.cpp" "CMakeFiles/emulator.dir/src/registers.cpp.o" "gcc" "CMakeFiles/emulator.dir/src/registers.cpp.o.d"
   "/home/numnum/emulator/src/system.cpp" "CMakeFiles/emulator.dir/src/system.cpp.o" "gcc" "CMakeFiles/emulator.dir/src/system.cpp.o.d"
   )
