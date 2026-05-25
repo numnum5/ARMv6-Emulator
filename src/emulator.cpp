@@ -17,6 +17,13 @@ void Emulator::startCpu(void)
 
     std::cout << "RUNNING CODE OUTPUT:" << std::endl <<  std::endl;
 
+     
+
+    printf("%d\n", cpu.fetch_pc);
+    cpu.writeFlash16(0x40, 0x2005);
+    cpu.writeFlash16(0x40 + 2, 0x210A);
+    cpu.writeFlash16(0x40 + 4, 0x1842);
+    cpu.writeFlash16(0x40 + 6, 0xB507);
     cpu.test();
     // printf("%c\n", cpu.flash[0x0000031c]);
     // printf("%c\n", cpu.flash[0x0000031d]);

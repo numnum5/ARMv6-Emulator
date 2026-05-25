@@ -908,7 +908,7 @@ enum class Execute : uint8_t
 };
 
 
-enum PopState
+enum PopPushState
 {
     TRANSFER,
     SETUP,
@@ -934,9 +934,14 @@ typedef struct {
     SRType shift_t;
     uint8_t shift_n;
     uint32_t write_address;
+    
+    
+    uint16_t pop_push_cycles;
+    uint8_t pop_push_iteration;
+    uint32_t pop_push_address;
 
     uint8_t cond;
-    PopState popState;
+    PopPushState popState;
     bool push_pop_M;
     bool valid;
     bool reg_write;
@@ -1026,7 +1031,7 @@ class Cpu
         uint32_t branch_pc;
         uint32_t cycle;
         bool branch_taken = false;
-    
+    void writeFlash16(uint32_t address, uint16_t value);
 uint32_t BXWritePC2(uint32_t address);
 void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next);
 void executeMovCmpAddSub2(const MovCmpAddSubInstruction & decoded);

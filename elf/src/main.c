@@ -15,9 +15,9 @@ int main(void)
 
     // uart_puts("HELLO\n");
 
-    // hlprintf("%d UCKU\n", 1);  
+    hlprintf("Hello\n");  
 
-    uart_putc('@');
+    // uart_putc('@');
 
     // uart_putc('I');
     // uart_putc('I');

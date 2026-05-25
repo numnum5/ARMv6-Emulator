@@ -1167,31 +1167,56 @@ case Opcode::ADD_SP_T2:
         {
             printf("Opcode::PUSH\n");
             
-            uint32_t address = regs[13] - (4 * DE_latch.register_list_count);
-            printf("Opcode::PUSH reg lsit: %d\n", DE_latch.register_list);
-            for (int i = 0; i <= 14; i++)
+            switch(DE_latch.popState)
             {
-                if (DE_latch.register_list & (1u << i))
+                case PopPushState::SETUP:
                 {
-                    printf(
-                        "push r%d=%x -> %x\n",
-                        i,
-                        regs[i],
-                        address
-                    );
-                    write32(address, regs[i]);
-                    cycle++;
-                    address += 4;
-
-                    
-                    // handleAsyncrnousExceptions();
-                    // handleSyncrnousExceptions();
+                    DE_latch.pop_push_address = regs[13] - (4 * DE_latch.register_list_count);
+                    regs[13] -= (4 *DE_latch.register_list_count);
+                    printf("Address: %x\n", regs[13]);
+                    DE_latch.popState = PopPushState::TRANSFER;
+                    stall = true;
+                    break;
                 }
+
+               case PopPushState::TRANSFER:
+                {
+                    if (DE_latch.pop_push_cycles > 0)
+                    {
+                        for (int i = DE_latch.pop_push_iteration; i <= 14; i++)
+                        {
+                            if (DE_latch.register_list & (1u << i))
+                            {
+                                printf("push r%d=%x -> %x\n",
+                                    i,
+                                    regs[i],
+                                    DE_latch.pop_push_address);
+
+                                write32(DE_latch.pop_push_address, regs[i]);
+
+                                DE_latch.pop_push_address += 4;
+                                DE_latch.pop_push_cycles--;
+
+                                if ( DE_latch.pop_push_cycles == 0)
+                                {
+                                    stall = false;
+                                    return;
+                                }
+
+                                DE_latch.pop_push_iteration = i + 1;
+
+                                stall = true;
+                                return; // ONE transfer this cycle
+                            }
+                        }
+                    }
+
+                    stall = false;
+                   // DE_latch.popState = PopPushState::SETUP;
+                    break;
+                }        
             }
 
-            regs[13] -= (4 *DE_latch.register_list_count);
-             printf("Address: %x\n", regs[13]);
-            print_mem();
             break;
         }
 
@@ -1463,7 +1488,7 @@ case Opcode::POP:
             this->pipeline.FD_latch.valid = false;
             this->flush = false;
             this->pipeline.DE_latch.state = Execute::ALU;
-            for(uint16_t i = 0; i < 200; i++)
+            for(uint16_t i = 0; i < 11; i++)
             {
                 Pipeline next = {};
 
@@ -2036,8 +2061,6 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
         bool bits_7 = (instr >> 7) & 0x1;
         uint8_t opcode = (instr >> 8) & 0xF;
         DE_latch.destination = 13;
-
-
         if (bits_7)
         {
             return Opcode::SUB_SP_T1;
@@ -2061,6 +2084,7 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
             DE_latch.register_list = register_list | (M << 15);
             DE_latch.registers_read.emplace(13, regs[13]);
             DE_latch.register_list_count = std::bitset<16>(DE_latch.register_list).count();
+            DE_latch.pop_push_cycles = std::bitset<16>(DE_latch.register_list).count();
             DE_latch.push_pop_M = M;
 
             return Opcode::POP;
@@ -2076,6 +2100,8 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
             printf("BOOL M: %d\n", M);
             DE_latch.registers_read.emplace(13, regs[13]);
             DE_latch.register_list_count = std::bitset<16>(DE_latch.register_list).count();
+            DE_latch.pop_push_cycles = std::bitset<16>(DE_latch.register_list).count();
+            DE_latch.popState = PopPushState::SETUP;
             return Opcode::PUSH;
         }
     }

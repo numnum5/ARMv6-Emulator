@@ -121,6 +121,14 @@ void Cpu::write32(uint32_t address, uint32_t value)
     this->ram[address + 3] = (value >> 24) & 0xFF;
 }
 
+void Cpu::writeFlash16(uint32_t address, uint16_t value)
+{
+
+    printf("write16(): address: %x\n", address);
+    this->flash[address] = value & 0xFF;
+    this->flash[address + 1] = (value >> 8) & 0xFF;
+}
+
 void Cpu::write16(uint32_t address, uint16_t value)
 {
  
