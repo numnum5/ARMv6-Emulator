@@ -546,11 +546,9 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::MOV_REG:
         {
-            regs[DE_latch.destination] =
-                regs[DE_latch.m];
+            regs[DE_latch.destination] = regs[DE_latch.m];
 
-            uint32_t result =
-                regs[DE_latch.destination];
+            uint32_t result = regs[DE_latch.destination];
 
             setAPSRValues(
                 xpsr.C(),
@@ -625,7 +623,7 @@ case Opcode::ADD_SP_T2:
             break;
         }
 
-                case Opcode::ORR:
+        case Opcode::ORR:
         {
             uint32_t result =
                 regs[DE_latch.n] |
@@ -1008,40 +1006,70 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::STR_REG:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t address = regs[DE_latch.n] + shift(regs[DE_latch.m], SRType_LSL, 0, xpsr.C());
+                    DE_latch.write_address = address;
 
-            write32(
-                address,
-                regs[DE_latch.t]
-            );
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
 
+                    printf("STR_REG ADDRESS\n");
+                    break;
+                }
+                
+                case Execute::MEMORY:
+                {
+                    write32(DE_latch.write_address, regs[DE_latch.t]);
+                    stall = false;
+
+                    printf("STR_IMM MEMORY\n");
+                    break;
+                }
+
+            }
             printf("Opcode::STR_REG\n");
             break;
         }
 
         case Opcode::STRB_REG:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                         uint32_t address =
+                        regs[DE_latch.n] +
+                        shift(
+                            regs[DE_latch.m],
+                            SRType_LSL,
+                            0,
+                            xpsr.C()
+                        );
+                    DE_latch.write_address = address;
 
-            write8(
-                address,
-                regs[DE_latch.t] & 0xFF
-            );
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
 
+                    printf("STR_REG ADDRESS\n");
+                    break;
+                }
+                
+                case Execute::MEMORY:
+                {
+                    write8(
+                            DE_latch.write_address,
+                            regs[DE_latch.t] & 0xFF
+                        );
+                    stall = false;
+
+                    printf("STRB_REG MMEMORY\n");
+                    break;
+                }
+
+            }
             printf("Opcode::STRB_REG\n");
             break;
         }
@@ -1147,8 +1175,8 @@ case Opcode::ADD_SP_T2:
 
                     address += 4;
 
-                    handleAsyncrnousExceptions();
-                    handleSyncrnousExceptions();
+                    // handleAsyncrnousExceptions();
+                    // handleSyncrnousExceptions();
                 }
             }
 
@@ -1220,69 +1248,69 @@ case Opcode::ADD_SP_T2:
             break;
         }
 
-case Opcode::POP:
-{
-    printf("Opcode::POP\n");
-
-    uint32_t address = regs[13];
-
-    printf("ADdress: %x\n", address);
-    print_mem();
-
-    //
-    // Restore low registers r0-r7
-    //
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        if (DE_latch.register_list & (1u << i))
+        case Opcode::POP:
         {
-            uint32_t value = read32(address);
+            printf("Opcode::POP\n");
 
-            printf("POP r%d <= %08x from %08x\n",
-                   i,
-                   value,
-                   address);
+            uint32_t address = regs[13];
 
-            regs[i] = value;
+            printf("ADdress: %x\n", address);
+            print_mem();
 
-            cycle++;
-            address += 4;
+            //
+            // Restore low registers r0-r7
+            //
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                if (DE_latch.register_list & (1u << i))
+                {
+                    uint32_t value = read32(address);
+
+                    printf("POP r%d <= %08x from %08x\n",
+                        i,
+                        value,
+                        address);
+
+                    regs[i] = value;
+
+                    cycle++;
+                    address += 4;
+                }
+            }
+
+            //
+            // Restore PC (bit P/M == 1)
+            //
+            if (DE_latch.push_pop_M)
+            {
+                uint32_t value = read32(address);
+
+                printf("POP pc raw=%08x from %08x\n",
+                    value,
+                    address);
+
+                this->branch_pc = BXWritePC2(value);
+
+                printf("branch pc=%08x\n",
+                    this->branch_pc);
+
+                cycle++;
+                address += 4;
+
+                branch_taken = true;
+                flush = true;
+            }
+
+            //
+            // Architecturally SP becomes address after pops
+            //
+            regs[13] = address;
+
+            printf("SP after POP = %08x\n",
+                regs[13]);
+
+            break;
         }
-    }
-
-    //
-    // Restore PC (bit P/M == 1)
-    //
-    if (DE_latch.push_pop_M)
-    {
-        uint32_t value = read32(address);
-
-        printf("POP pc raw=%08x from %08x\n",
-               value,
-               address);
-
-        this->branch_pc = BXWritePC2(value);
-
-        printf("branch pc=%08x\n",
-               this->branch_pc);
-
-        cycle++;
-        address += 4;
-
-        branch_taken = true;
-        flush = true;
-    }
-
-    //
-    // Architecturally SP becomes address after pops
-    //
-    regs[13] = address;
-
-    printf("SP after POP = %08x\n",
-           regs[13]);
-
-    break;
-}
 
         //
         // System register access
@@ -2393,8 +2421,8 @@ void Cpu::decode_final(
             registers_read.emplace(m, regs[m]);
             registers_read.emplace(t, regs[t]);
 
-            decode.opcode =
-                decode_load_store_reg(op);
+            decode.state = Execute::ALU;
+            decode.opcode = decode_load_store_reg(op);
 
             break;
         }
