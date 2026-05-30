@@ -1,6 +1,6 @@
-CMakeFiles/emulator.dir/src/cpu.cpp.o: /home/numnum/emulator/src/cpu.cpp \
- /usr/include/stdc-predef.h /home/numnum/emulator/include/cpu.hpp \
- /usr/include/c++/11/iostream \
+CMakeFiles/tests.dir/src/emulator.cpp.o: \
+ /home/numnum/emulator/src/emulator.cpp /usr/include/stdc-predef.h \
+ /home/numnum/emulator/include/emulator.hpp /usr/include/c++/11/iostream \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
  /usr/include/features.h /usr/include/features-time64.h \
@@ -161,6 +161,12 @@ CMakeFiles/emulator.dir/src/cpu.cpp.o: /home/numnum/emulator/src/cpu.cpp \
  /usr/include/c++/11/bits/stl_bvector.h \
  /usr/include/c++/11/bits/vector.tcc /usr/include/c++/11/limits \
  /usr/include/c++/11/bitset /usr/include/c++/11/bit \
+ /usr/include/c++/11/fstream /usr/include/c++/11/bits/codecvt.h \
+ /usr/include/x86_64-linux-gnu/c++/11/bits/basic_file.h \
+ /usr/include/x86_64-linux-gnu/c++/11/bits/c++io.h \
+ /usr/include/c++/11/bits/fstream.tcc /usr/include/c++/11/cstring \
+ /usr/include/string.h /usr/include/strings.h /usr/include/elf.h \
+ /home/numnum/emulator/include/cpu.hpp \
  /home/numnum/emulator/include/system.hpp \
  /home/numnum/emulator/include/registers.hpp /usr/include/c++/11/cassert \
  /usr/include/assert.h /usr/include/c++/11/unordered_map \

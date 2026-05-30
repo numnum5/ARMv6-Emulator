@@ -75,14 +75,11 @@ bool Cpu::conditionPassed(uint8_t cond) const
 
 void Cpu::write32(uint32_t address, uint32_t value)
 {
-
     // System register access
     if (address >= 0xE0000000 && address <= 0xE00FFFFF)
     {
         this->scs.write32(address, value);
         fprintf(stderr, "write32: Address: %x\n", address);
-
-        
         return;
     }
 
@@ -108,9 +105,6 @@ void Cpu::write32(uint32_t address, uint32_t value)
     if (address == 0x00000fec)
     {
         printf("THIS IS WRITING TO 0x00000fec\n");
-
-
-
         // while(1);
     }
 

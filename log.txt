@@ -10,21 +10,15 @@ RUNNING CODE OUTPUT:
 64
 write16(): address: 40
 write16(): address: 42
-write16(): address: 44
-write16(): address: 46
-Opcode::B, next branch pc: 0
-HEX INSTRUCTION: 210a2005
+HEX INSTRUCTION: 6041212a
 [FETCH] PC: 64
 normal execution path
 next.FD_latch.valid: 1
 next.DE_latch.valid: 0
 Cycles: 1
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0xBEEFBEEF    r1 : 0xBEEFBEEF    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0xBEEFBEEF    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
 r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
 r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
@@ -32,22 +26,18 @@ r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0010000000000101
+Thumb1Instruction: 0010000100101010
 Class: 2
 [DECODE] PC: 64
-HEX INSTRUCTION: 1842210a
+HEX INSTRUCTION: af006041
 [FETCH] PC: 66
 normal execution path
 next.FD_latch.valid: 1
 next.DE_latch.valid: 1
 Cycles: 2
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0xBEEFBEEF    r1 : 0xBEEFBEEF    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0xBEEFBEEF    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
 r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
 r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
@@ -58,23 +48,19 @@ FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 Opcode: 24
 Opcode::MOV_IMM
 [EXECUTE] PC: 64
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0010000100001010
-Class: 2
+Thumb1Instruction: 0110000001000001
+Class: 7
 [DECODE] PC: 66
-HEX INSTRUCTION: b5071842
+HEX INSTRUCTION: 4b10af00
 [FETCH] PC: 68
 normal execution path
 next.FD_latch.valid: 1
 next.DE_latch.valid: 1
 Cycles: 3
 instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0x00000005    r1 : 0xBEEFBEEF    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
 r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
 r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
@@ -82,26 +68,40 @@ r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
-Opcode: 24
-Opcode::MOV_IMM
+Opcode: 47
+Opcode::STR_IMM
+STR_IMM ADDRESS
 [EXECUTE] PC: 66
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0001100001000010
-Class: 1
+STALLED decode
+Cycles: 4
+instruction retired
+
+--- CPU STATE ---
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
+r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
+r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
+-----------------
+FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
+-----------------
+
+Opcode: 47
+Opcode::STR_IMM
+STR_IMM MEMORY
+[EXECUTE] PC: 66
+Thumb1Instruction: 1010111100000000
+Class: a
 [DECODE] PC: 68
-HEX INSTRUCTION: 607bb507
+HEX INSTRUCTION: 607b4b10
 [FETCH] PC: 70
 normal execution path
 next.FD_latch.valid: 1
 next.DE_latch.valid: 1
-Cycles: 4
+Cycles: 5
 instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
 r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
 r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
@@ -109,141 +109,49 @@ r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
-Opcode: 8
-Opcode::ADD_IMM
+Opcode: 10
+SP: before ADD_SP: 20001000
+SP: after ADD_SP: 20001000
+Opcode::ADD_SP_T1
 [EXECUTE] PC: 68
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 1011010100000111
-Class: b
-DOES THIS EVEN TGET ESXECUTED
-PUSH Register list: 16391
-BOOL M: 1
+Thumb1Instruction: 0100101100010000
+Class: 5
 [DECODE] PC: 70
 HEX INSTRUCTION: 4b10607b
 [FETCH] PC: 72
 normal execution path
 next.FD_latch.valid: 1
 next.DE_latch.valid: 1
-Cycles: 5
+Cycles: 6
 instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0x20001000    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
 r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
 -----------------
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
-Opcode: 56
-Opcode::PUSH
-Address: 20000ff0
+Opcode: 37
 [EXECUTE] PC: 70
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0110000001111011
-Class: 7
-[DECODE] PC: 72
-HEX INSTRUCTION: 603b4b10
-[FETCH] PC: 74
-Cycles: 6
-instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
-
---- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
-r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
-r12: 0xBEEFBEEF    r13: 0x20000FF0    r14: 0xFFFFFFFF    r15: 0x00000040    
------------------
-FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
------------------
-
-Opcode: 56
-Opcode::PUSH
-push r0=5 -> 20000ff0
-[EXECUTE] PC: 70
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0110000001111011
-Class: 7
-[DECODE] PC: 72
-HEX INSTRUCTION: 603b4b10
-[FETCH] PC: 74
+STALLED decode
 Cycles: 7
 instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0xBEEFBEEF    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0x20001000    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
-r12: 0xBEEFBEEF    r13: 0x20000FF0    r14: 0xFFFFFFFF    r15: 0x00000040    
+r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
 -----------------
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
-Opcode: 56
-Opcode::PUSH
-push r1=a -> 20000ff4
+Opcode: 37
+Opcode::LDR_LITERAL
 [EXECUTE] PC: 70
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0110000001111011
-Class: 7
-[DECODE] PC: 72
-HEX INSTRUCTION: 603b4b10
-[FETCH] PC: 74
-Cycles: 8
-instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
-
---- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
-r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
-r12: 0xBEEFBEEF    r13: 0x20000FF0    r14: 0xFFFFFFFF    r15: 0x00000040    
------------------
-FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
------------------
-
-Opcode: 56
-Opcode::PUSH
-push r2=5 -> 20000ff8
-[EXECUTE] PC: 70
-Opcode::B, next branch pc: 0
-Thumb1Instruction: 0110000001111011
-Class: 7
-[DECODE] PC: 72
-HEX INSTRUCTION: 603b4b10
-[FETCH] PC: 74
-Cycles: 9
-instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
-
---- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
-r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
-r12: 0xBEEFBEEF    r13: 0x20000FF0    r14: 0xFFFFFFFF    r15: 0x00000040    
------------------
-FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
------------------
-
-Opcode: 56
-Opcode::PUSH
-push r14=ffffffff -> 20000ffc
-[EXECUTE] PC: 70
-Opcode::B, next branch pc: 0
 Thumb1Instruction: 0110000001111011
 Class: 7
 [DECODE] PC: 72
@@ -252,43 +160,72 @@ HEX INSTRUCTION: 603b4b10
 normal execution path
 next.FD_latch.valid: 1
 next.DE_latch.valid: 1
-Cycles: 10
+Cycles: 8
 instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0x0000032B    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0x20001000    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
-r12: 0xBEEFBEEF    r13: 0x20000FF0    r14: 0xFFFFFFFF    r15: 0x00000040    
+r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
 -----------------
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
 Opcode: 47
-STR_IMM ADDRESS
 Opcode::STR_IMM
+STR_IMM ADDRESS
 [EXECUTE] PC: 72
-Opcode::B, next branch pc: 0
+STALLED decode
+Cycles: 9
+instruction retired
+
+--- CPU STATE ---
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0x0000032B    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0x20001000    
+r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
+r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
+-----------------
+FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
+-----------------
+
+Opcode: 47
+Opcode::STR_IMM
+STR_IMM MEMORY
+[EXECUTE] PC: 72
 Thumb1Instruction: 0100101100010000
 Class: 5
 [DECODE] PC: 74
 HEX INSTRUCTION: e007603b
 [FETCH] PC: 76
-Cycles: 11
+normal execution path
+next.FD_latch.valid: 1
+next.DE_latch.valid: 1
+Cycles: 10
 instruction retired
-mem[00000fe0]: 00000000
-mem[00000fe4]: 00000000
-mem[00000fe8]: 00000000
 
 --- CPU STATE ---
-r0 : 0x00000005    r1 : 0x0000000A    r2 : 0x00000005    r3 : 0xBEEFBEEF    
-r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0xBEEFBEEF    
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0x0000032B    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0x20001000    
 r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
-r12: 0xBEEFBEEF    r13: 0x20000FF0    r14: 0xFFFFFFFF    r15: 0x00000040    
+r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
 -----------------
 FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
 -----------------
 
+Opcode: 37
+[EXECUTE] PC: 74
+STALLED decode
+Cycles: 11
+instruction retired
+
+--- CPU STATE ---
+r0 : 0x20000050    r1 : 0x0000002A    r2 : 0xBEEFBEEF    r3 : 0x0000032B    
+r4 : 0xBEEFBEEF    r5 : 0xBEEFBEEF    r6 : 0xBEEFBEEF    r7 : 0x20001000    
+r8 : 0xBEEFBEEF    r9 : 0xBEEFBEEF    r10: 0xBEEFBEEF    r11: 0xBEEFBEEF    
+r12: 0xBEEFBEEF    r13: 0x20001000    r14: 0xFFFFFFFF    r15: 0x00000040    
+-----------------
+FLAGS: [ apsr_N:0 | apsr_Z:0 | apsr_C:0 | apsr_V:0 ]
+-----------------
+
+0 : 42

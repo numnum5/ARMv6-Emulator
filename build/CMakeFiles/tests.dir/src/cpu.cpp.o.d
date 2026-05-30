@@ -1,4 +1,4 @@
-CMakeFiles/emulator.dir/src/cpu.cpp.o: /home/numnum/emulator/src/cpu.cpp \
+CMakeFiles/tests.dir/src/cpu.cpp.o: /home/numnum/emulator/src/cpu.cpp \
  /usr/include/stdc-predef.h /home/numnum/emulator/include/cpu.hpp \
  /usr/include/c++/11/iostream \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \

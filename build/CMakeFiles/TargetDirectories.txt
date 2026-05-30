@@ -1,3 +1,4 @@
 /home/numnum/emulator/build/CMakeFiles/emulator.dir
+/home/numnum/emulator/build/CMakeFiles/tests.dir
 /home/numnum/emulator/build/CMakeFiles/edit_cache.dir
 /home/numnum/emulator/build/CMakeFiles/rebuild_cache.dir

@@ -908,10 +908,11 @@ enum class Execute : uint8_t
 };
 
 
-enum PopPushState
+enum MultipleInstrucitonState
 {
     TRANSFER,
     SETUP,
+    LINK
 };
 
 
@@ -929,11 +930,16 @@ typedef struct {
     std::vector<uint8_t> registers_push_pop;
     uint16_t register_list_count;
     uint16_t register_list; 
+
+    std::vector<uint8_t> register_list_decoded; 
+
     std::unordered_map<uint8_t, uint32_t> registers_read;
     Execute state;
     SRType shift_t;
     uint8_t shift_n;
+
     uint32_t write_address;
+    uint32_t read_address;
     
     
     uint16_t pop_push_cycles;
@@ -941,7 +947,7 @@ typedef struct {
     uint32_t pop_push_address;
 
     uint8_t cond;
-    PopPushState popState;
+    MultipleInstrucitonState popState;
     bool push_pop_M;
     bool valid;
     bool reg_write;
@@ -1035,7 +1041,7 @@ class Cpu
 uint32_t BXWritePC2(uint32_t address);
 void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next);
 void executeMovCmpAddSub2(const MovCmpAddSubInstruction & decoded);
- void test();
+ void test(uint32_t cycles);
  Opcode decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1);
  
 Opcode decode_alu(uint8_t opcode);

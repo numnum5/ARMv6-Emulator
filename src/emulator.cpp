@@ -20,11 +20,34 @@ void Emulator::startCpu(void)
      
 
     printf("%d\n", cpu.fetch_pc);
-    cpu.writeFlash16(0x40, 0x2005);
-    cpu.writeFlash16(0x40 + 2, 0x210A);
-    cpu.writeFlash16(0x40 + 4, 0x1842);
-    cpu.writeFlash16(0x40 + 6, 0xB507);
-    cpu.test();
+
+    // Testing STMIA
+    // cpu.regs[0] = 0x20000000 + 80; // movs r0,#0x80
+    // cpu.writeFlash16(0x40 + 2, 0x2105); // movs r1,#5
+    // cpu.writeFlash16(0x40 + 4, 0x220A); // movs r2,#10
+    // cpu.writeFlash16(0x40 + 6, 0xC006); // stmia r0!, {r1,r2}
+
+    // Testing PUSH
+    // cpu.writeFlash16(0x40, 0x2005);
+    // cpu.writeFlash16(0x40 + 2, 0x210A);
+    // cpu.writeFlash16(0x40 + 4, 0x1842);
+    // cpu.writeFlash16(0x40 + 6, 0xB507);
+    
+    cpu.regs[0] = 0x20000050;
+    cpu.writeFlash16(0x40,     0x212A); // movs r1,#42
+    cpu.writeFlash16(0x40 + 2, 0x6041); // str r1,[r0,#4]
+
+    cpu.test(11);
+
+
+    auto val1 = cpu.read32(0x20000000 + 80);
+    auto val2 = cpu.read32(0x20000000 + 80 + 4);
+
+
+    printf("%d : %d\n", val1, val2);
+
+
+
     // printf("%c\n", cpu.flash[0x0000031c]);
     // printf("%c\n", cpu.flash[0x0000031d]);
     // printf("%c\n", cpu.flash[0x0000031e]);

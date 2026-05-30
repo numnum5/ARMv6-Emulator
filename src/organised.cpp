@@ -116,10 +116,6 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::BL:
         {
-            
-
-            
-
             branch_taken = true;
             flush = true;
 
@@ -162,9 +158,7 @@ case Opcode::ADD_SP_T2:
         //
         case Opcode::ADC:
         {
-            auto result =
-                addWithCarry(
-                    regs[DE_latch.n],
+            auto result = addWithCarry(regs[DE_latch.n],
                     regs[DE_latch.m],
                     xpsr.C()
                 );
@@ -531,6 +525,7 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::MOV_IMM:
         {
+            printf("Opcode::MOV_IMM\n");
             regs[DE_latch.destination] = DE_latch.imm32;
 
             setAPSRValues(
@@ -540,7 +535,7 @@ case Opcode::ADD_SP_T2:
                 regs[DE_latch.destination] == 0
             );
 
-            printf("Opcode::MOV_IMM\n");
+            
             break;
         }
 
@@ -787,183 +782,345 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::LDR_LITERAL:
         {
-            uint32_t base =
-                (DE_latch.pc + 4) & ~0x3;
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t base =
+                        (DE_latch.pc + 4) & ~0x3;
 
-            uint32_t address =
-                base + DE_latch.imm32;
+                    DE_latch.read_address =
+                        base + DE_latch.imm32;
 
-            regs[DE_latch.t] =
-                read32(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDR_LITERAL\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] = read32(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDR_LITERAL\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDR_IMM:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                DE_latch.imm32;
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        DE_latch.imm32;
 
-            regs[DE_latch.t] =
-                read32(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDR_IMM\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        read32(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDR_IMM\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDR_IMM_T2:
         {
-            // SP-relative
-            uint32_t address =
-                regs[13] +
-                DE_latch.imm32;
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    // SP-relative
+                    DE_latch.read_address =
+                        regs[13] +
+                        DE_latch.imm32;
 
-            regs[DE_latch.t] =
-                read32(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDR_IMM_T2\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        read32(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDR_IMM_T2\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDR_REG:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        shift(
+                            regs[DE_latch.m],
+                            SRType_LSL,
+                            0,
+                            xpsr.C()
+                        );
 
-            regs[DE_latch.t] =
-                read32(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDR_REG\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        read32(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDR_REG\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDRB:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        shift(
+                            regs[DE_latch.m],
+                            SRType_LSL,
+                            0,
+                            xpsr.C()
+                        );
 
-            regs[DE_latch.t] =
-                (uint32_t)read8(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDRB\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        (uint32_t)read8(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDRB\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDRB_IMM:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                DE_latch.imm32;
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        DE_latch.imm32;
 
-            regs[DE_latch.t] =
-                (uint32_t)read8(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDRB_IMM\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        (uint32_t)read8(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDRB_IMM\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDRH:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        shift(
+                            regs[DE_latch.m],
+                            SRType_LSL,
+                            0,
+                            xpsr.C()
+                        );
 
-            regs[DE_latch.t] =
-                (uint32_t)read16(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDRH\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        (uint32_t)read16(DE_latch.read_address);
+
+                    DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDRH\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDRH_IMM:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                DE_latch.imm32;
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        DE_latch.imm32;
 
-            regs[DE_latch.t] =
-                (uint32_t)read16(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            printf("Opcode::LDRH_IMM\n");
+                case Execute::MEMORY:
+                {
+                    regs[DE_latch.t] =
+                        (uint32_t)read16(DE_latch.read_address);
+
+                    stall = false;
+
+                    printf("Opcode::LDRH_IMM\n");
+                    break;
+                }
+            }
             break;
         }
 
         case Opcode::LDRSB:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    DE_latch.read_address =
+                        regs[DE_latch.n] +
+                        shift(
+                            regs[DE_latch.m],
+                            SRType_LSL,
+                            0,
+                            xpsr.C()
+                        );
 
-            uint8_t value =
-                read8(address);
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
 
-            regs[DE_latch.t] =
-                sign_extend(value, 8);
+                case Execute::MEMORY:
+                {
+                    uint8_t value =
+                        read8(DE_latch.read_address);
 
-            printf("Opcode::LDRSB\n");
+                    regs[DE_latch.t] =
+                        sign_extend(value, 8);
+
+                    //DE_latch.state = Execute::ALU;
+                    stall = false;
+
+                    printf("Opcode::LDRSB\n");
+                    break;
+                }
+            }
             break;
         }
 
+      
         case Opcode::LDRSH:
-        {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
-
-            uint16_t value =
-                read16(address);
-
-            regs[DE_latch.t] =
-                sign_extend(value, 16);
-
-            printf("Opcode::LDRSH\n");
-            break;
-        }
-
-        case Opcode::STR_IMM:
         {
             switch (DE_latch.state)
             {
                 case Execute::ALU:
                 {
-                    uint32_t address =
-                        regs[DE_latch.n] +
-                        DE_latch.imm32;
+                    DE_latch.read_address = regs[DE_latch.n] + shift(
+                        regs[DE_latch.m],
+                        SRType_LSL,
+                        0,
+                        xpsr.C()
+                    );
 
-                    DE_latch.write_address =
-                        address;
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
 
-                    DE_latch.state =
-                        Execute::MEMORY;
+                    break;
+                }
+                
+                case Execute::MEMORY:
+                {
+                    uint16_t value = read16(DE_latch.read_address);
+
+                    regs[DE_latch.t] = sign_extend(value, 16);
+
+                    stall = false;
+
+                    printf("Opcode::LDRSH\n");
+                    break;
+                }
+            }
+            break;
+        }
+
+        case Opcode::STR_IMM:
+        {
+             printf("Opcode::STR_IMM\n");
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t address = regs[DE_latch.n] + DE_latch.imm32;
+
+                    DE_latch.write_address = address;
+
+                    DE_latch.state = Execute::MEMORY;
 
                     stall = true;
 
@@ -973,10 +1130,7 @@ case Opcode::ADD_SP_T2:
 
                 case Execute::MEMORY:
                 {
-                    write32(
-                        DE_latch.write_address,
-                        regs[DE_latch.t]
-                    );
+                    write32(DE_latch.write_address, regs[DE_latch.t]);
 
                     stall = false;
 
@@ -985,22 +1139,39 @@ case Opcode::ADD_SP_T2:
                 }
             }
 
-            printf("Opcode::STR_IMM\n");
+           
             break;
         }
 
         case Opcode::STR_IMM_T2:
         {
-            uint32_t address =
-                regs[13] +
-                DE_latch.imm32;
-
-            write32(
-                address,
-                regs[DE_latch.t]
-            );
-
             printf("Opcode::STR_IMM_T2\n");
+            switch (DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t address = regs[13] + DE_latch.imm32;
+
+                    DE_latch.write_address = address;
+
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+                    break;
+                }
+
+                case Execute::MEMORY:
+                {
+                    write32(DE_latch.write_address, regs[DE_latch.t]);
+                    
+                    stall = false;
+
+                    printf("STR_IMM_T2 MEMORY\n");
+                    break;
+                }
+            }
+
+
+            
             break;
         }
 
@@ -1036,18 +1207,19 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::STRB_REG:
         {
+            printf("Opcode::STRB_REG\n");
             switch (DE_latch.state)
             {
                 case Execute::ALU:
                 {
-                         uint32_t address =
-                        regs[DE_latch.n] +
+                    uint32_t address = regs[DE_latch.n] +
                         shift(
                             regs[DE_latch.m],
                             SRType_LSL,
                             0,
                             xpsr.C()
                         );
+
                     DE_latch.write_address = address;
 
                     DE_latch.state = Execute::MEMORY;
@@ -1059,47 +1231,82 @@ case Opcode::ADD_SP_T2:
                 
                 case Execute::MEMORY:
                 {
-                    write8(
-                            DE_latch.write_address,
-                            regs[DE_latch.t] & 0xFF
-                        );
-                    stall = false;
+                    printf("RAMMMMM: %d\n", regs[DE_latch.t]);
 
                     printf("STRB_REG MMEMORY\n");
+                    //write8(DE_latch.write_address,regs[DE_latch.t] & 0xFF);
+                    stall = false;
                     break;
                 }
 
             }
-            printf("Opcode::STRB_REG\n");
+
             break;
         }
 
         case Opcode::STRB_IMM:
         {
-            uint32_t address = regs[DE_latch.n] + DE_latch.imm32;
-            printf("STRB_IMM: %x\n", address);
 
-            write8(address, regs[DE_latch.t] & 0xFF);
+            switch(DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t address = regs[DE_latch.n] + DE_latch.imm32;
+                    DE_latch.write_address = address;
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
 
-            printf("Opcode::STRB_IMM\n");
+                    printf("STR_REG ADDRESS\n");
+                    break;
+                }
+
+                case Execute::MEMORY:
+                {
+                    printf("STRB_REG MMEMORY value:%d, %x\n", DE_latch.t, regs[DE_latch.t]);
+                    write8(DE_latch.write_address, regs[DE_latch.t] & 0xFF);
+                    stall = false;
+                    break;
+                }
+                    
+            }
             break;
         }
 
         case Opcode::STRH_REG:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                shift(
-                    regs[DE_latch.m],
-                    SRType_LSL,
-                    0,
-                    xpsr.C()
-                );
+            switch(DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t address =
+                        regs[DE_latch.n] +
+                        shift(
+                            regs[DE_latch.m],
+                            SRType_LSL,
+                            0,
+                            xpsr.C()
+                        );
 
-            write16(
-                address,
-                regs[DE_latch.t] & 0xFFFF
-            );
+                    DE_latch.write_address = address;
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+
+                    printf("STR_REG ADDRESS\n");
+                    break;
+                }
+
+                case Execute::MEMORY:
+                {
+                    printf("STRB_REG MMEMORY value:%d, %x\n", DE_latch.t, regs[DE_latch.t]);
+                    write16(
+                        DE_latch.write_address,
+                        regs[DE_latch.t] & 0xFFFF
+                    );
+                    stall = false;
+                    break;
+                }
+                    
+            }
 
             printf("Opcode::STRH_REG\n");
             break;
@@ -1107,16 +1314,35 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::STRH_IMM:
         {
-            uint32_t address =
-                regs[DE_latch.n] +
-                DE_latch.imm32;
-
-            write16(
-                address,
-                regs[DE_latch.t] & 0xFFFF
-            );
-
             printf("Opcode::STRH_IMM\n");
+            switch(DE_latch.state)
+            {
+                case Execute::ALU:
+                {
+                    uint32_t address =
+                        regs[DE_latch.n] +
+                        DE_latch.imm32;
+
+                    DE_latch.write_address = address;
+                    DE_latch.state = Execute::MEMORY;
+                    stall = true;
+
+                    printf("STR_REG ADDRESS\n");
+                    break;
+                }
+
+                case Execute::MEMORY:
+                {
+                    printf("STRB_REG MMEMORY value:%d, %x\n", DE_latch.t, regs[DE_latch.t]);
+                    write16(
+                        DE_latch.write_address,
+                        regs[DE_latch.t] & 0xFFFF
+                    );
+                    stall = false;
+                    break;
+                }
+                    
+            }
             break;
         }
 
@@ -1125,69 +1351,123 @@ case Opcode::ADD_SP_T2:
         //
         case Opcode::LDMIA:
         {
-            uint32_t address =
-                regs[DE_latch.n];
-
-            for (uint8_t i = 0; i < 8; i++)
+            printf("Opcode::LDMIA\n");
+            switch (DE_latch.popState)
             {
-                if (DE_latch.register_list &
-                    (1u << i))
+                case MultipleInstrucitonState::SETUP:
                 {
-                    regs[i] =
-                        read32(address);
+                    printf("Opcode::LDMIA SetUp\n");
 
-                    cycle++;
+                    uint32_t address = regs[DE_latch.n];
 
-                    address += 4;
+                    printf("address:: %x\n", address);
 
-                    handleAsyncrnousExceptions();
-                    handleSyncrnousExceptions();
+                    if (DE_latch.wback)
+                    {
+                        regs[DE_latch.n] += 4 * DE_latch.register_list_count;
+                    }
+
+                    DE_latch.write_address = address;
+                    DE_latch.popState = MultipleInstrucitonState::TRANSFER;
+                    
+                    DE_latch.pop_push_iteration = 0;
+                    
+                    stall = true;
+
+                    break;
+                }
+
+                case MultipleInstrucitonState::TRANSFER:
+                {
+                    printf("Opcode::STMIA trasnfer, %d\n", DE_latch.register_list_decoded.size());
+                    if (DE_latch.pop_push_iteration < DE_latch.register_list_decoded.size())
+                    {
+                        uint8_t reg_num = DE_latch.register_list_decoded[DE_latch.pop_push_iteration];
+    
+                        printf(" addr: %d\n", DE_latch.write_address);
+                        regs[reg_num] = read32(DE_latch.write_address);
+                        printf(" reg _num: %d\n",reg_num);
+                        
+                        DE_latch.pop_push_iteration++;
+                        DE_latch.write_address += 4;
+
+                        if (DE_latch.pop_push_iteration >= DE_latch.register_list_decoded.size())
+                        {
+                            stall = false;
+                            return;
+                        }
+
+                        stall = true;
+
+                        return;
+                    }
+                    break;
                 }
             }
 
-            if (DE_latch.wback)
-            {
-                regs[DE_latch.n] +=
-                    4 *
-                    DE_latch.register_list_count;
-            }
-
-            printf("Opcode::LDMIA\n");
             break;
         }
 
         case Opcode::STMIA:
-        {
-            uint32_t address =
-                regs[DE_latch.n];
-
-            for (uint8_t i = 0; i < 8; i++)
+        {   
+            // while(1);
+            switch (DE_latch.popState)
             {
-                if (DE_latch.register_list &
-                    (1u << i))
+                case MultipleInstrucitonState::SETUP:
                 {
-                    write32(
-                        address,
-                        regs[i]
-                    );
+                    printf("Opcode::STMIA SetUp\n");
 
-                    cycle++;
+                    uint32_t address = regs[DE_latch.n];
 
-                    address += 4;
+                    printf("address:: %x\n", address);
 
-                    // handleAsyncrnousExceptions();
-                    // handleSyncrnousExceptions();
+                    if (DE_latch.wback)
+                    {
+                        regs[DE_latch.n] += 4 * DE_latch.register_list_count;
+                    }
+
+                    DE_latch.write_address = address;
+                    DE_latch.popState = MultipleInstrucitonState::TRANSFER;
+                    
+                    DE_latch.pop_push_iteration = 0;
+                    
+                    stall = true;
+
+                    break;
+                }
+
+                case MultipleInstrucitonState::TRANSFER:
+                {
+
+                    printf("Opcode::STMIA trasnfer, %d\n", DE_latch.register_list_decoded.size());
+                    if (DE_latch.pop_push_iteration < DE_latch.register_list_decoded.size())
+                    {
+
+                        printf("ADOIHJAOIDHJOWRIJROIWIURHIROUWHIUWHRIUHWRUUOIWRH\n");
+                        uint8_t reg_num = DE_latch.register_list_decoded[DE_latch.pop_push_iteration];
+                        
+                        
+                        printf(" addr: %d\n", DE_latch.write_address);
+
+                        printf(" reg _num: %d\n",reg_num);
+                        write32(DE_latch.write_address, regs[reg_num]);
+                        
+                        DE_latch.pop_push_iteration++;
+                        DE_latch.write_address+=4;
+                        if (DE_latch.pop_push_iteration >= DE_latch.register_list_decoded.size())
+                        {
+                            printf("ADOIHJAOIDHJOWRIJROIWIURHIROUWHIUWHRIUHWRUUOIWRH\n");
+                            stall = false;
+                            return;
+                        }
+                        stall = true;
+
+                        return;
+                    }
+                    break;
                 }
             }
-
-            if (DE_latch.wback)
-            {
-                regs[DE_latch.n] +=
-                    4 *
-                    DE_latch.register_list_count;
-            }
-
-            printf("Opcode::STMIA\n");
+            
             break;
         }
 
@@ -1197,17 +1477,17 @@ case Opcode::ADD_SP_T2:
             
             switch(DE_latch.popState)
             {
-                case PopPushState::SETUP:
+                case MultipleInstrucitonState::SETUP:
                 {
                     DE_latch.pop_push_address = regs[13] - (4 * DE_latch.register_list_count);
                     regs[13] -= (4 *DE_latch.register_list_count);
                     printf("Address: %x\n", regs[13]);
-                    DE_latch.popState = PopPushState::TRANSFER;
+                    DE_latch.popState = MultipleInstrucitonState::TRANSFER;
                     stall = true;
                     break;
                 }
 
-               case PopPushState::TRANSFER:
+               case MultipleInstrucitonState::TRANSFER:
                 {
                     if (DE_latch.pop_push_cycles > 0)
                     {
@@ -1225,7 +1505,7 @@ case Opcode::ADD_SP_T2:
                                 DE_latch.pop_push_address += 4;
                                 DE_latch.pop_push_cycles--;
 
-                                if ( DE_latch.pop_push_cycles == 0)
+                                if (DE_latch.pop_push_cycles == 0)
                                 {
                                     stall = false;
                                     return;
@@ -1240,7 +1520,7 @@ case Opcode::ADD_SP_T2:
                     }
 
                     stall = false;
-                   // DE_latch.popState = PopPushState::SETUP;
+                   // DE_latch.popState = MultipleInstrucitonState::SETUP;
                     break;
                 }        
             }
@@ -1252,63 +1532,79 @@ case Opcode::ADD_SP_T2:
         {
             printf("Opcode::POP\n");
 
-            uint32_t address = regs[13];
-
-            printf("ADdress: %x\n", address);
-            print_mem();
-
-            //
-            // Restore low registers r0-r7
-            //
-            for (uint8_t i = 0; i < 8; i++)
+            switch(DE_latch.popState)
             {
-                if (DE_latch.register_list & (1u << i))
+                case MultipleInstrucitonState::SETUP:
                 {
-                    uint32_t value = read32(address);
+                    // uint32_t address = regs[13];
+                    DE_latch.pop_push_address = regs[13] + (4 * DE_latch.register_list_count);
+                    regs[13] += (4 *DE_latch.register_list_count);
+                    printf("Address: %x\n", regs[13]);
+                    DE_latch.popState = MultipleInstrucitonState::TRANSFER;
+                    stall = true;
+                    break;
+                }
 
-                    printf("POP r%d <= %08x from %08x\n",
-                        i,
-                        value,
-                        address);
+                case MultipleInstrucitonState::TRANSFER:
+                {
+                    if (DE_latch.pop_push_cycles > 0)
+                    {
+                        for (int i = DE_latch.pop_push_iteration; i < 8; i++)
+                        {
+                            if (DE_latch.register_list & (1u << i))
+                            {
+                                regs[i] = read32(DE_latch.pop_push_address);
+                                DE_latch.pop_push_address += 4;
+                                DE_latch.pop_push_cycles--;
 
-                    regs[i] = value;
+                                if (DE_latch.pop_push_cycles == 0)
+                                {
+                                    if (DE_latch.push_pop_M)
+                                    {
+                                        DE_latch.popState = MultipleInstrucitonState::LINK;
+                                        DE_latch.read_address = DE_latch.pop_push_address ;
+                                        stall = true;
+                                        return;
+                                    }
+                                    stall = false;
+                                    return;
+                                }
 
-                    cycle++;
-                    address += 4;
+                                DE_latch.pop_push_iteration = i + 1;
+
+                                stall = true;
+                                return; // ONE transfer this cycle
+                            }
+                        }
+                    }
+                    
+                   // DE_latch.popState = MultipleInstrucitonState::SETUP;
+                    break;
+                }
+
+                case MultipleInstrucitonState::LINK:
+                {
+                    if (DE_latch.push_pop_M)
+                    {
+                        uint32_t value = read32(DE_latch.read_address);
+
+                        printf("POP pc raw=%08x from %08x\n",
+                            value,
+                            DE_latch.read_address);
+
+                        this->branch_pc = BXWritePC2(value);
+
+                        printf("branch pc=%08x\n",
+                            this->branch_pc);
+
+                        cycle++;
+
+                        branch_taken = true;
+                        stall = false;
+                        flush = true;
+                    }
                 }
             }
-
-            //
-            // Restore PC (bit P/M == 1)
-            //
-            if (DE_latch.push_pop_M)
-            {
-                uint32_t value = read32(address);
-
-                printf("POP pc raw=%08x from %08x\n",
-                    value,
-                    address);
-
-                this->branch_pc = BXWritePC2(value);
-
-                printf("branch pc=%08x\n",
-                    this->branch_pc);
-
-                cycle++;
-                address += 4;
-
-                branch_taken = true;
-                flush = true;
-            }
-
-            //
-            // Architecturally SP becomes address after pops
-            //
-            regs[13] = address;
-
-            printf("SP after POP = %08x\n",
-                regs[13]);
-
             break;
         }
 
@@ -1501,7 +1797,7 @@ case Opcode::ADD_SP_T2:
 
 
 
-        void  Cpu::test()
+        void  Cpu::test(uint32_t cycles)
         {   
             FD_latch.instruction = 0;
 
@@ -1516,13 +1812,13 @@ case Opcode::ADD_SP_T2:
             this->pipeline.FD_latch.valid = false;
             this->flush = false;
             this->pipeline.DE_latch.state = Execute::ALU;
-            for(uint16_t i = 0; i < 11; i++)
+            for(uint16_t i = 0; i < cycles; i++)
             {
                 Pipeline next = {};
 
                 bool instructionRetired = stage_execute(next);
 
-                printf("Opcode::B, next branch pc: %d\n", next.DE_latch.branch_pc);
+                //printf("Opcode::B, next branch pc: %d\n", next.DE_latch.branch_pc);
                 stage_decode(next);
                 stage_fetch(flash.data(), next);
                 commit(next);
@@ -1534,7 +1830,7 @@ case Opcode::ADD_SP_T2:
                 {
                     std::cout << "instruction retired\n";
                 }
-                print_mem();
+                //print_mem();
                 print_state(stdout);
             }
 
@@ -1558,10 +1854,12 @@ case Opcode::ADD_SP_T2:
 
         void  Cpu::stage_decode(Pipeline& next)
         {
-            if (pipeline.FD_latch.stall)
+            if (stall)
             {
+                printf("STALLED decode\n");
                 return;
             }
+            //  printf("STALLED decode\n");
 
             if (!pipeline.FD_latch.valid)
             {
@@ -1580,8 +1878,9 @@ case Opcode::ADD_SP_T2:
 
         void Cpu::stage_fetch(uint8_t* flash, Pipeline& next)
         {
-            if (pipeline.FD_latch.stall)
+            if (stall)
             {
+                
                 return;
             }
 
@@ -2129,7 +2428,8 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
             DE_latch.registers_read.emplace(13, regs[13]);
             DE_latch.register_list_count = std::bitset<16>(DE_latch.register_list).count();
             DE_latch.pop_push_cycles = std::bitset<16>(DE_latch.register_list).count();
-            DE_latch.popState = PopPushState::SETUP;
+            DE_latch.popState = MultipleInstrucitonState::SETUP;
+            DE_latch.pop_push_iteration = 0;
             return Opcode::PUSH;
         }
     }
@@ -2390,6 +2690,7 @@ void Cpu::decode_final(
         //
         case InstrClass::LDR_LITERAL:
         {
+            decode.state = Execute::ALU; 
             decode.t = (instruction >> 8) & 0x7;
             decode.imm32 =
                 (instruction & 0xFF) << 2;
@@ -2440,6 +2741,8 @@ void Cpu::decode_final(
             decode.t = t;
             decode.n = n;
 
+
+            printf("decode T: %d\n", decode.t);
             // STR/LDR word scale by 4
             decode.imm32 =(op <= 0b01) ? (imm5 << 2): imm5;
 
@@ -2466,6 +2769,7 @@ void Cpu::decode_final(
 
             decode.t = t;
             decode.n = n;
+            decode.state = Execute::ALU; 
 
             // halfword => <<1
             decode.imm32 = imm5 << 1;
@@ -2473,8 +2777,7 @@ void Cpu::decode_final(
             registers_read.emplace(t, regs[t]);
             registers_read.emplace(n, regs[n]);
 
-            decode.opcode =
-                decode_load_store_half(load);
+            decode.opcode = decode_load_store_half(load);
 
             break;
         }
@@ -2495,10 +2798,9 @@ void Cpu::decode_final(
 
             registers_read.emplace(13, regs[13]);
 
-            decode.opcode =
-                load
-                    ? Opcode::LDR_IMM_T2
-                    : Opcode::STR_IMM_T2;
+            decode.opcode = load ? Opcode::LDR_IMM_T2 : Opcode::STR_IMM_T2;
+
+            decode.state = Execute::ALU;  
 
             break;
         }
@@ -2508,19 +2810,13 @@ void Cpu::decode_final(
         //
         case InstrClass::ADDR:
         {
-            bool addSP =
-                (instruction >> 11) & 1;
+            bool addSP = (instruction >> 11) & 1;
 
-            decode.destination =
-                (instruction >> 8) & 0x7;
+            decode.destination = (instruction >> 8) & 0x7;
 
-            decode.imm32 =
-                (instruction & 0xFF) << 2;
+            decode.imm32 = (instruction & 0xFF) << 2;
 
-            decode.opcode =
-                addSP
-                    ? Opcode::ADD_SP_T1
-                    : Opcode::ADR;
+            decode.opcode = addSP ? Opcode::ADD_SP_T1 : Opcode::ADR;
 
             break;
         }
@@ -2539,41 +2835,39 @@ void Cpu::decode_final(
         //
         case InstrClass::MULTIPLE:
         {
-            bool load =
-                (instruction >> 11) & 1;
+            bool load = (instruction >> 11) & 1;
 
-            uint8_t n =
-                (instruction >> 8) & 0x7;
+            uint8_t n = (instruction >> 8) & 0x7;
 
             decode.n = n;
 
-            decode.register_list =
-                instruction & 0xFF;
+            decode.register_list = instruction & 0xFF;
 
-            decode.register_list_count =
-                std::bitset<8>(
-                    decode.register_list)
-                    .count();
+            decode.register_list_count = std::bitset<8>(decode.register_list).count();
 
-            decode.wback =
-                load
-                    ? ((decode.register_list &
-                        (1 << n)) == 0)
-                    : true;
+            decode.wback = load ? ((decode.register_list & (1 << n)) == 0) : true;
 
-            registers_read.emplace(
-                n,
-                regs[n]);
+            registers_read.emplace(n, regs[n]);
 
-            decode.opcode =
-                load
-                    ? Opcode::LDMIA
-                    : Opcode::STMIA;
+
+            printf("ARDDRESS: %x\n", regs[n]);
+
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                if (decode.register_list & (1u << i))
+                {
+                    decode.register_list_decoded.push_back(i);
+                }
+            }
+
+            printf("Opcode::MULTIPLE\n");
+            decode.opcode = load ? Opcode::LDMIA : Opcode::STMIA;
+            decode.popState = MultipleInstrucitonState::SETUP;
+            decode.pop_push_iteration = 0;
 
             if (decode.register_list_count == 0)
             {
-                decode.opcode =
-                    Opcode::INVALID;
+                decode.opcode = Opcode::INVALID;
             }
 
             break;
@@ -2584,17 +2878,11 @@ void Cpu::decode_final(
         //
         case InstrClass::COND_BRANCH:
         {
-            decode.cond =
-                (instruction >> 8) & 0xF;
+            decode.cond = (instruction >> 8) & 0xF;
 
-            decode.imm32 =
-                sign_extend(
-                    (instruction & 0xFF)
-                    << 1,
-                    9);
+            decode.imm32 = sign_extend((instruction & 0xFF) << 1, 9);
 
-            decode.opcode =
-                Opcode::B_COND;
+            decode.opcode = Opcode::B_COND;
 
             break;
         }
@@ -2605,23 +2893,15 @@ void Cpu::decode_final(
         case InstrClass::UNCOND_BRANCH:
         {
             decode.opcode = Opcode::B;
-
-            decode.imm32 =
-                sign_extend(
-                    (instruction & 0x7FF)
-                    << 1,
-                    12);
+            decode.imm32 = sign_extend((instruction & 0x7FF) << 1, 12);
 
             break;
         }
 
         default:
         {
-            std::cerr
-                << "UNKNOWN\n";
-
-            decode.opcode =
-                Opcode::INVALID;
+            std::cerr << "UNKNOWN\n";
+            decode.opcode = Opcode::INVALID;
             break;
         }
     }

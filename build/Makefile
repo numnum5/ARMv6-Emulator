@@ -129,12 +129,26 @@ emulator/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/build
 .PHONY : emulator/fast
 
+#=============================================================================
+# Target rules for targets named tests
+
+# Build rule for target.
+tests: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tests
+.PHONY : tests
+
+# fast build rule for target.
+tests/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/build
+.PHONY : tests/fast
+
 src/compiler.o: src/compiler.cpp.o
 .PHONY : src/compiler.o
 
 # target to build an object file
 src/compiler.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/compiler.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/compiler.cpp.o
 .PHONY : src/compiler.cpp.o
 
 src/compiler.i: src/compiler.cpp.i
@@ -143,6 +157,7 @@ src/compiler.i: src/compiler.cpp.i
 # target to preprocess a source file
 src/compiler.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/compiler.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/compiler.cpp.i
 .PHONY : src/compiler.cpp.i
 
 src/compiler.s: src/compiler.cpp.s
@@ -151,6 +166,7 @@ src/compiler.s: src/compiler.cpp.s
 # target to generate assembly for a file
 src/compiler.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/compiler.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/compiler.cpp.s
 .PHONY : src/compiler.cpp.s
 
 src/cpu.o: src/cpu.cpp.o
@@ -159,6 +175,7 @@ src/cpu.o: src/cpu.cpp.o
 # target to build an object file
 src/cpu.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/cpu.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/cpu.cpp.o
 .PHONY : src/cpu.cpp.o
 
 src/cpu.i: src/cpu.cpp.i
@@ -167,6 +184,7 @@ src/cpu.i: src/cpu.cpp.i
 # target to preprocess a source file
 src/cpu.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/cpu.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/cpu.cpp.i
 .PHONY : src/cpu.cpp.i
 
 src/cpu.s: src/cpu.cpp.s
@@ -175,6 +193,7 @@ src/cpu.s: src/cpu.cpp.s
 # target to generate assembly for a file
 src/cpu.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/cpu.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/cpu.cpp.s
 .PHONY : src/cpu.cpp.s
 
 src/emulator.o: src/emulator.cpp.o
@@ -183,6 +202,7 @@ src/emulator.o: src/emulator.cpp.o
 # target to build an object file
 src/emulator.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/emulator.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/emulator.cpp.o
 .PHONY : src/emulator.cpp.o
 
 src/emulator.i: src/emulator.cpp.i
@@ -191,6 +211,7 @@ src/emulator.i: src/emulator.cpp.i
 # target to preprocess a source file
 src/emulator.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/emulator.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/emulator.cpp.i
 .PHONY : src/emulator.cpp.i
 
 src/emulator.s: src/emulator.cpp.s
@@ -199,6 +220,7 @@ src/emulator.s: src/emulator.cpp.s
 # target to generate assembly for a file
 src/emulator.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/emulator.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/emulator.cpp.s
 .PHONY : src/emulator.cpp.s
 
 src/main.o: src/main.cpp.o
@@ -231,6 +253,7 @@ src/organised.o: src/organised.cpp.o
 # target to build an object file
 src/organised.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/organised.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/organised.cpp.o
 .PHONY : src/organised.cpp.o
 
 src/organised.i: src/organised.cpp.i
@@ -239,6 +262,7 @@ src/organised.i: src/organised.cpp.i
 # target to preprocess a source file
 src/organised.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/organised.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/organised.cpp.i
 .PHONY : src/organised.cpp.i
 
 src/organised.s: src/organised.cpp.s
@@ -247,6 +271,7 @@ src/organised.s: src/organised.cpp.s
 # target to generate assembly for a file
 src/organised.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/organised.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/organised.cpp.s
 .PHONY : src/organised.cpp.s
 
 src/registers.o: src/registers.cpp.o
@@ -255,6 +280,7 @@ src/registers.o: src/registers.cpp.o
 # target to build an object file
 src/registers.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/registers.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/registers.cpp.o
 .PHONY : src/registers.cpp.o
 
 src/registers.i: src/registers.cpp.i
@@ -263,6 +289,7 @@ src/registers.i: src/registers.cpp.i
 # target to preprocess a source file
 src/registers.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/registers.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/registers.cpp.i
 .PHONY : src/registers.cpp.i
 
 src/registers.s: src/registers.cpp.s
@@ -271,6 +298,7 @@ src/registers.s: src/registers.cpp.s
 # target to generate assembly for a file
 src/registers.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/registers.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/registers.cpp.s
 .PHONY : src/registers.cpp.s
 
 src/system.o: src/system.cpp.o
@@ -279,6 +307,7 @@ src/system.o: src/system.cpp.o
 # target to build an object file
 src/system.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/system.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/system.cpp.o
 .PHONY : src/system.cpp.o
 
 src/system.i: src/system.cpp.i
@@ -287,6 +316,7 @@ src/system.i: src/system.cpp.i
 # target to preprocess a source file
 src/system.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/system.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/system.cpp.i
 .PHONY : src/system.cpp.i
 
 src/system.s: src/system.cpp.s
@@ -295,7 +325,32 @@ src/system.s: src/system.cpp.s
 # target to generate assembly for a file
 src/system.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/emulator.dir/build.make CMakeFiles/emulator.dir/src/system.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/system.cpp.s
 .PHONY : src/system.cpp.s
+
+test/str.o: test/str.cpp.o
+.PHONY : test/str.o
+
+# target to build an object file
+test/str.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/str.cpp.o
+.PHONY : test/str.cpp.o
+
+test/str.i: test/str.cpp.i
+.PHONY : test/str.i
+
+# target to preprocess a source file
+test/str.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/str.cpp.i
+.PHONY : test/str.cpp.i
+
+test/str.s: test/str.cpp.s
+.PHONY : test/str.s
+
+# target to generate assembly for a file
+test/str.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/str.cpp.s
+.PHONY : test/str.cpp.s
 
 # Help Target
 help:
@@ -306,6 +361,7 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... emulator"
+	@echo "... tests"
 	@echo "... src/compiler.o"
 	@echo "... src/compiler.i"
 	@echo "... src/compiler.s"
@@ -327,6 +383,9 @@ help:
 	@echo "... src/system.o"
 	@echo "... src/system.i"
 	@echo "... src/system.s"
+	@echo "... test/str.o"
+	@echo "... test/str.i"
+	@echo "... test/str.s"
 .PHONY : help
 
 

@@ -1,4 +1,4 @@
-CMakeFiles/emulator.dir/src/compiler.cpp.o: \
+CMakeFiles/tests.dir/src/compiler.cpp.o: \
  /home/numnum/emulator/src/compiler.cpp /usr/include/stdc-predef.h \
  /home/numnum/emulator/include/compiler.hpp /usr/include/c++/11/cstdlib \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
