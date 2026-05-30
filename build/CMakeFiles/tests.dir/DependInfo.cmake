@@ -14,6 +14,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/numnum/emulator/src/organised.cpp" "CMakeFiles/tests.dir/src/organised.cpp.o" "gcc" "CMakeFiles/tests.dir/src/organised.cpp.o.d"
   "/home/numnum/emulator/src/registers.cpp" "CMakeFiles/tests.dir/src/registers.cpp.o" "gcc" "CMakeFiles/tests.dir/src/registers.cpp.o.d"
   "/home/numnum/emulator/src/system.cpp" "CMakeFiles/tests.dir/src/system.cpp.o" "gcc" "CMakeFiles/tests.dir/src/system.cpp.o.d"
+  "/home/numnum/emulator/test/ldr.cpp" "CMakeFiles/tests.dir/test/ldr.cpp.o" "gcc" "CMakeFiles/tests.dir/test/ldr.cpp.o.d"
   "/home/numnum/emulator/test/str.cpp" "CMakeFiles/tests.dir/test/str.cpp.o" "gcc" "CMakeFiles/tests.dir/test/str.cpp.o.d"
   )
 

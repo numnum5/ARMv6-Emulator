@@ -83,10 +83,24 @@ CMakeFiles/tests.dir/test/str.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/tests.dir/test/str.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/numnum/emulator/test/str.cpp -o CMakeFiles/tests.dir/test/str.cpp.s
 
+CMakeFiles/tests.dir/test/ldr.cpp.o: CMakeFiles/tests.dir/flags.make
+CMakeFiles/tests.dir/test/ldr.cpp.o: ../test/ldr.cpp
+CMakeFiles/tests.dir/test/ldr.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/tests.dir/test/ldr.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/test/ldr.cpp.o -MF CMakeFiles/tests.dir/test/ldr.cpp.o.d -o CMakeFiles/tests.dir/test/ldr.cpp.o -c /home/numnum/emulator/test/ldr.cpp
+
+CMakeFiles/tests.dir/test/ldr.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/tests.dir/test/ldr.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/numnum/emulator/test/ldr.cpp > CMakeFiles/tests.dir/test/ldr.cpp.i
+
+CMakeFiles/tests.dir/test/ldr.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/tests.dir/test/ldr.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/numnum/emulator/test/ldr.cpp -o CMakeFiles/tests.dir/test/ldr.cpp.s
+
 CMakeFiles/tests.dir/src/cpu.cpp.o: CMakeFiles/tests.dir/flags.make
 CMakeFiles/tests.dir/src/cpu.cpp.o: ../src/cpu.cpp
 CMakeFiles/tests.dir/src/cpu.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/tests.dir/src/cpu.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/tests.dir/src/cpu.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/src/cpu.cpp.o -MF CMakeFiles/tests.dir/src/cpu.cpp.o.d -o CMakeFiles/tests.dir/src/cpu.cpp.o -c /home/numnum/emulator/src/cpu.cpp
 
 CMakeFiles/tests.dir/src/cpu.cpp.i: cmake_force
@@ -100,7 +114,7 @@ CMakeFiles/tests.dir/src/cpu.cpp.s: cmake_force
 CMakeFiles/tests.dir/src/emulator.cpp.o: CMakeFiles/tests.dir/flags.make
 CMakeFiles/tests.dir/src/emulator.cpp.o: ../src/emulator.cpp
 CMakeFiles/tests.dir/src/emulator.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/tests.dir/src/emulator.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/tests.dir/src/emulator.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/src/emulator.cpp.o -MF CMakeFiles/tests.dir/src/emulator.cpp.o.d -o CMakeFiles/tests.dir/src/emulator.cpp.o -c /home/numnum/emulator/src/emulator.cpp
 
 CMakeFiles/tests.dir/src/emulator.cpp.i: cmake_force
@@ -114,7 +128,7 @@ CMakeFiles/tests.dir/src/emulator.cpp.s: cmake_force
 CMakeFiles/tests.dir/src/compiler.cpp.o: CMakeFiles/tests.dir/flags.make
 CMakeFiles/tests.dir/src/compiler.cpp.o: ../src/compiler.cpp
 CMakeFiles/tests.dir/src/compiler.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/tests.dir/src/compiler.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/tests.dir/src/compiler.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/src/compiler.cpp.o -MF CMakeFiles/tests.dir/src/compiler.cpp.o.d -o CMakeFiles/tests.dir/src/compiler.cpp.o -c /home/numnum/emulator/src/compiler.cpp
 
 CMakeFiles/tests.dir/src/compiler.cpp.i: cmake_force
@@ -128,7 +142,7 @@ CMakeFiles/tests.dir/src/compiler.cpp.s: cmake_force
 CMakeFiles/tests.dir/src/registers.cpp.o: CMakeFiles/tests.dir/flags.make
 CMakeFiles/tests.dir/src/registers.cpp.o: ../src/registers.cpp
 CMakeFiles/tests.dir/src/registers.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/tests.dir/src/registers.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/tests.dir/src/registers.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/src/registers.cpp.o -MF CMakeFiles/tests.dir/src/registers.cpp.o.d -o CMakeFiles/tests.dir/src/registers.cpp.o -c /home/numnum/emulator/src/registers.cpp
 
 CMakeFiles/tests.dir/src/registers.cpp.i: cmake_force
@@ -142,7 +156,7 @@ CMakeFiles/tests.dir/src/registers.cpp.s: cmake_force
 CMakeFiles/tests.dir/src/system.cpp.o: CMakeFiles/tests.dir/flags.make
 CMakeFiles/tests.dir/src/system.cpp.o: ../src/system.cpp
 CMakeFiles/tests.dir/src/system.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/tests.dir/src/system.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/tests.dir/src/system.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/src/system.cpp.o -MF CMakeFiles/tests.dir/src/system.cpp.o.d -o CMakeFiles/tests.dir/src/system.cpp.o -c /home/numnum/emulator/src/system.cpp
 
 CMakeFiles/tests.dir/src/system.cpp.i: cmake_force
@@ -156,7 +170,7 @@ CMakeFiles/tests.dir/src/system.cpp.s: cmake_force
 CMakeFiles/tests.dir/src/organised.cpp.o: CMakeFiles/tests.dir/flags.make
 CMakeFiles/tests.dir/src/organised.cpp.o: ../src/organised.cpp
 CMakeFiles/tests.dir/src/organised.cpp.o: CMakeFiles/tests.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/tests.dir/src/organised.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/tests.dir/src/organised.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/tests.dir/src/organised.cpp.o -MF CMakeFiles/tests.dir/src/organised.cpp.o.d -o CMakeFiles/tests.dir/src/organised.cpp.o -c /home/numnum/emulator/src/organised.cpp
 
 CMakeFiles/tests.dir/src/organised.cpp.i: cmake_force
@@ -170,6 +184,7 @@ CMakeFiles/tests.dir/src/organised.cpp.s: cmake_force
 # Object files for target tests
 tests_OBJECTS = \
 "CMakeFiles/tests.dir/test/str.cpp.o" \
+"CMakeFiles/tests.dir/test/ldr.cpp.o" \
 "CMakeFiles/tests.dir/src/cpu.cpp.o" \
 "CMakeFiles/tests.dir/src/emulator.cpp.o" \
 "CMakeFiles/tests.dir/src/compiler.cpp.o" \
@@ -181,6 +196,7 @@ tests_OBJECTS = \
 tests_EXTERNAL_OBJECTS =
 
 tests: CMakeFiles/tests.dir/test/str.cpp.o
+tests: CMakeFiles/tests.dir/test/ldr.cpp.o
 tests: CMakeFiles/tests.dir/src/cpu.cpp.o
 tests: CMakeFiles/tests.dir/src/emulator.cpp.o
 tests: CMakeFiles/tests.dir/src/compiler.cpp.o
@@ -190,7 +206,7 @@ tests: CMakeFiles/tests.dir/src/organised.cpp.o
 tests: CMakeFiles/tests.dir/build.make
 tests: /usr/lib/libCatch2WithMain.a
 tests: CMakeFiles/tests.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable tests"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/numnum/emulator/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable tests"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/tests.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

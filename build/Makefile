@@ -328,6 +328,30 @@ src/system.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/src/system.cpp.s
 .PHONY : src/system.cpp.s
 
+test/ldr.o: test/ldr.cpp.o
+.PHONY : test/ldr.o
+
+# target to build an object file
+test/ldr.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/ldr.cpp.o
+.PHONY : test/ldr.cpp.o
+
+test/ldr.i: test/ldr.cpp.i
+.PHONY : test/ldr.i
+
+# target to preprocess a source file
+test/ldr.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/ldr.cpp.i
+.PHONY : test/ldr.cpp.i
+
+test/ldr.s: test/ldr.cpp.s
+.PHONY : test/ldr.s
+
+# target to generate assembly for a file
+test/ldr.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/ldr.cpp.s
+.PHONY : test/ldr.cpp.s
+
 test/str.o: test/str.cpp.o
 .PHONY : test/str.o
 
@@ -383,6 +407,9 @@ help:
 	@echo "... src/system.o"
 	@echo "... src/system.i"
 	@echo "... src/system.s"
+	@echo "... test/ldr.o"
+	@echo "... test/ldr.i"
+	@echo "... test/ldr.s"
 	@echo "... test/str.o"
 	@echo "... test/str.i"
 	@echo "... test/str.s"
