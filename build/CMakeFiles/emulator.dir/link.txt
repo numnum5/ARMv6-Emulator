@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/emulator.dir/src/main.cpp.o CMakeFiles/emulator.dir/src/cpu.cpp.o CMakeFiles/emulator.dir/src/emulator.cpp.o CMakeFiles/emulator.dir/src/compiler.cpp.o CMakeFiles/emulator.dir/src/registers.cpp.o CMakeFiles/emulator.dir/src/system.cpp.o CMakeFiles/emulator.dir/src/organised.cpp.o -o ../emulator 
