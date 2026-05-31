@@ -1498,7 +1498,6 @@ case Opcode::ADD_SP_T2:
         case Opcode::POP:
         {
             printf("Opcode::POP\n");
-
             switch(DE_latch.popState)
             {
                 case MultipleInstrucitonState::SETUP:
@@ -1747,118 +1746,122 @@ case Opcode::ADD_SP_T2:
 }
 
 
+void Cpu::test(uint32_t cycles)
+{   
+    // set pc from elf 
+    // uint32_t pc = 0x100;
+    cycle = 0;
+    this->branch_taken = false;
+    this->pipeline.FD_latch.stall = false;
+    this->pipeline.DE_latch.valid = false;
+    this->pipeline.FD_latch.valid = false;
+    this->flush = false;
+    this->pipeline.DE_latch.state = Execute::ALU;
 
+    for(uint16_t i = 0; i < cycles; i++)
+    {
+        this->step();
+        // Pipeline next = {};
 
-        void  Cpu::test(uint32_t cycles)
-        {   
-            FD_latch.instruction = 0;
+        // bool instructionRetired = stage_execute(next);
+        // stage_decode(next);
+        // stage_fetch(flash.data(), next);
+        // commit(next);
 
-            // set whatever values idagf
-            // set pc from elf 
-            // uint32_t pc = 0x100;
-            cycle = 0;
-            // this->fetch_pc = 0;
-            this->branch_taken = false;
-            this->pipeline.FD_latch.stall = false;
-            this->pipeline.DE_latch.valid = false;
-            this->pipeline.FD_latch.valid = false;
-            this->flush = false;
-            this->pipeline.DE_latch.state = Execute::ALU;
-            for(uint16_t i = 0; i < cycles; i++)
-            {
-                Pipeline next = {};
+        // cycle++;
+        // printf("Cycles: %d\n", cycle);
+        // // handle exception at instruction bonudary
+        // if (instructionRetired)
+        // {
+        //     std::cout << "instruction retired\n";
+        // }
+        // //print_mem();
+        // print_state(stdout);
+    }
 
-                bool instructionRetired = stage_execute(next);
+}
 
-                //printf("Opcode::B, next branch pc: %d\n", next.DE_latch.branch_pc);
-                stage_decode(next);
-                stage_fetch(flash.data(), next);
-                commit(next);
+void Cpu::step()
+{
+    Pipeline next = {};
 
-                cycle++;
-                printf("Cycles: %d\n", cycle);
-                            // handle exception at instruction bonudary
-                if (instructionRetired)
-                {
-                    std::cout << "instruction retired\n";
-                }
-                //print_mem();
-                print_state(stdout);
-            }
+    bool instructionRetired = stage_execute(next);
+    stage_decode(next);
 
-        }
+    stage_fetch(flash.data(), next);
+    
+    commit(next);
+    
+    cycle++;
 
-        bool  Cpu::stage_execute(Pipeline& next)
-        {
-            if (!pipeline.DE_latch.valid)
-            {
-                return false;
-            }
+    // handle exception at instruction bonudary
+    if (instructionRetired)
+    {
+        std::cout << "instruction retired\n";
+    }
+    //print_mem();
+    printf("Cycles: %d\n", cycle);
+    print_state(stdout);
+}
 
-            printf("Opcode: %d\n", pipeline.DE_latch.opcode);
-            fprintf(stderr, "pc: %d", pipeline.DE_latch.pc);
-            execute_final(pipeline.DE_latch, next.DE_latch);
+bool Cpu::stage_execute(Pipeline& next)
+{
+    if (!pipeline.DE_latch.valid)
+    {
+        return false;
+    }
+    execute_final(pipeline.DE_latch, next.DE_latch);
+    printf("[EXECUTE] PC: %u\n", pipeline.DE_latch.pc);  
 
-            printf("[EXECUTE] PC: %u\n", pipeline.DE_latch.pc);  
+    return true;
+}
 
-            return true;
-        }
+void Cpu::stage_decode(Pipeline& next)
+{
+    if (stall)
+    {
+        return;
+    }
 
-        void  Cpu::stage_decode(Pipeline& next)
-        {
-            if (stall)
-            {
-                printf("STALLED decode\n");
-                return;
-            }
-            //  printf("STALLED decode\n");
+    if (!pipeline.FD_latch.valid)
+    {
+        return;
+    }
 
-            if (!pipeline.FD_latch.valid)
-            {
-                return;
-            }
+    uint32_t instruction = pipeline.FD_latch.instruction;
+    std::unordered_map<uint8_t, uint32_t> registers_read;
+    decode_final(next, instruction, registers_read);
+    next.DE_latch.valid = true;
+    next.DE_latch.state = Execute::ALU;
+    next.DE_latch.registers_read = registers_read;
+    next.DE_latch.pc = pipeline.FD_latch.pc;
+    printf("[DECODE] PC: %u\n", pipeline.FD_latch.pc);
+}
 
-            uint32_t instruction = pipeline.FD_latch.instruction;
-            std::unordered_map<uint8_t, uint32_t> registers_read;
-            decode_final(next, instruction, registers_read);
-            next.DE_latch.valid = true;
-            next.DE_latch.state = Execute::ALU;
-            next.DE_latch.registers_read = registers_read;
-            next.DE_latch.pc = pipeline.FD_latch.pc;
-            printf("[DECODE] PC: %u\n", pipeline.FD_latch.pc);
-        }
+void Cpu::stage_fetch(uint8_t* flash, Pipeline& next)
+{
+    if (stall)
+    {                
+        return;
+    }
 
-        void Cpu::stage_fetch(uint8_t* flash, Pipeline& next)
-        {
-            if (stall)
-            {
-                
-                return;
-            }
+    uint32_t instruction = flash[fetch_pc] |
+        (flash[fetch_pc + 1] << 8) |
+        (flash[fetch_pc + 2] << 16) |
+        (flash[fetch_pc + 3] << 24);
 
-            
+    next.FD_latch.valid = true;
+    next.FD_latch.instruction = instruction;
+    next.FD_latch.pc = fetch_pc;
 
-            uint32_t instruction =
-                flash[fetch_pc] |
-                (flash[fetch_pc + 1] << 8) |
-                (flash[fetch_pc + 2] << 16) |
-                (flash[fetch_pc + 3] << 24);
-
-            printf("HEX INSTRUCTION: %x\n", instruction);  
-
-            next.FD_latch.valid = true;
-            next.FD_latch.instruction = instruction;
-            next.FD_latch.pc = fetch_pc;
-
-            printf("[FETCH] PC: %u\n", fetch_pc);
-        }
+    printf("[FETCH] PC: %u\n", fetch_pc);
+}
 
 uint32_t  Cpu::pc_adder(Pipeline & next)
 {
     if (branch_taken)
     {
         printf("BRANCH TAKEN!!!!!!!!!!!!!!!!!!!, %d\n", this->branch_pc);
-
         branch_taken = false;
         return this->branch_pc;
     }
@@ -1874,7 +1877,7 @@ uint32_t  Cpu::pc_adder(Pipeline & next)
     }
 }
 
-void  Cpu::commit(Pipeline & next)
+void Cpu::commit(Pipeline & next)
 {
     if (stall)
     {

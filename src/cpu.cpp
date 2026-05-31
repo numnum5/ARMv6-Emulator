@@ -3494,12 +3494,6 @@ void Cpu::exceptionEntry(int32_t ExceptionType)
     {
         frameptraling = this->psp;
     }
-    // NOTE: PushStack() can abandon memory accesses if a fault occurs during the stacking
-    // sequence.
-    // Exception entry is modified according to the behavior of a derived exception.
-
-    // while(1);
-
     pushStack(ExceptionType);
     exceptionTaken(ExceptionType); // ExceptionType is encoded as its exception number
 }

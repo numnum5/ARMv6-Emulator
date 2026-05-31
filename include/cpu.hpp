@@ -964,15 +964,12 @@ struct Pipeline
     DecodeExecuteLatch DE_latch;
 };
 
-
-
 class Cpu
 {  
     public:
         static constexpr uint32_t FLASH_BASE = 0x00000000;
         static constexpr uint32_t FLASH_SIZE = 64 * 1024;                    
         //  static constexpr uint32_t RAM_BASE   = 0x00000000;
-
         static constexpr uint32_t RAM_BASE   = 0x20000000;
         static constexpr uint32_t RAM_SIZE   = 16 * 1024;
 
@@ -1019,47 +1016,35 @@ class Cpu
 
         uint32_t fetched_instruction;
         uint32_t VTOR;
-
-
-    uint32_t fetch_pc;
-
-
-
-
-
-    Pipeline pipeline;
-    FetchDecodeLatch   FD_latch = {};
-    DecodeExecuteLatch DE_latch = {};
-            bool execute22 = false;
+        uint32_t fetch_pc;
+        Pipeline pipeline;
+         bool execute22 = false;
         bool stall = false;
         bool flush = false;
 
         uint32_t branch_pc;
         uint32_t cycle;
         bool branch_taken = false;
-    void writeFlash16(uint32_t address, uint16_t value);
-uint32_t BXWritePC2(uint32_t address);
-void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next);
-void executeMovCmpAddSub2(const MovCmpAddSubInstruction & decoded);
- void test(uint32_t cycles);
- Opcode decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1);
- 
-Opcode decode_alu(uint8_t opcode);
- Opcode decode_load_store_reg(uint8_t opcode);
- Opcode decode_load_store_half(bool opcode);
-Opcode decode_load_store_imm(uint8_t opcode);
- bool stage_execute(Pipeline& next);
- void stage_decode(Pipeline& next);
- void stage_fetch(uint8_t* flash, Pipeline& next);
- uint32_t pc_adder(Pipeline & next);
-  void commit(Pipeline & next);
-   void handle_32bit_instruction(uint32_t instruction, DecodeExecuteLatch & decode);
-   void decode_final(Pipeline & next, uint32_t instruction, std::unordered_map<uint8_t, uint32_t> & registers_read);
-Opcode decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unordered_map<uint8_t, uint32_t> & registers_read);
-
-
-
-    void writeFlash32(uint32_t address, uint16_t value);
+        void writeFlash16(uint32_t address, uint16_t value);
+        uint32_t BXWritePC2(uint32_t address);
+        void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next);
+        void executeMovCmpAddSub2(const MovCmpAddSubInstruction & decoded);
+        void test(uint32_t cycles);
+        void step();
+        Opcode decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1);
+        Opcode decode_alu(uint8_t opcode);
+        Opcode decode_load_store_reg(uint8_t opcode);
+        Opcode decode_load_store_half(bool opcode);
+        Opcode decode_load_store_imm(uint8_t opcode);
+        bool stage_execute(Pipeline& next);
+        void stage_decode(Pipeline& next);
+        void stage_fetch(uint8_t* flash, Pipeline& next);
+        uint32_t pc_adder(Pipeline & next);
+        void commit(Pipeline & next);
+        void handle_32bit_instruction(uint32_t instruction, DecodeExecuteLatch & decode);
+        void decode_final(Pipeline & next, uint32_t instruction, std::unordered_map<uint8_t, uint32_t> & registers_read);
+        Opcode decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unordered_map<uint8_t, uint32_t> & registers_read);
+        void writeFlash32(uint32_t address, uint16_t value);
         Cpu(size_t ram_size, size_t flash_size);
         void setPrimaskPM(bool value);
         bool conditionPassed(uint8_t cond) const;
@@ -1144,7 +1129,7 @@ Opcode decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unordered
         void execute(void);
         void print_state(FILE* out = stderr) const;
         void deActivate(uint32_t exceptionNumber);
-void print_mem();
+        void print_mem();
         void reset(void);
         void exceptionReturn(uint32_t EXC_RETURN);
         void PopStack(uint32_t frameptr, uint32_t EXC_RETURN);

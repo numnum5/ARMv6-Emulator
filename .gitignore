@@ -1,2 +1,13 @@
 build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+
+*.o
+*.obj
+*.exe
+*.out
 *.elf
+*.bin
+*.map
