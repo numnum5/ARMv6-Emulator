@@ -1058,6 +1058,8 @@ Opcode decode_load_store_imm(uint8_t opcode);
 Opcode decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unordered_map<uint8_t, uint32_t> & registers_read);
 
 
+
+    void writeFlash32(uint32_t address, uint16_t value);
         Cpu(size_t ram_size, size_t flash_size);
         void setPrimaskPM(bool value);
         bool conditionPassed(uint8_t cond) const;

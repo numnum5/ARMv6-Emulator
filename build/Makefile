@@ -352,6 +352,30 @@ test/ldr.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/ldr.cpp.s
 .PHONY : test/ldr.cpp.s
 
+test/misc.o: test/misc.cpp.o
+.PHONY : test/misc.o
+
+# target to build an object file
+test/misc.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/misc.cpp.o
+.PHONY : test/misc.cpp.o
+
+test/misc.i: test/misc.cpp.i
+.PHONY : test/misc.i
+
+# target to preprocess a source file
+test/misc.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/misc.cpp.i
+.PHONY : test/misc.cpp.i
+
+test/misc.s: test/misc.cpp.s
+.PHONY : test/misc.s
+
+# target to generate assembly for a file
+test/misc.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tests.dir/build.make CMakeFiles/tests.dir/test/misc.cpp.s
+.PHONY : test/misc.cpp.s
+
 test/str.o: test/str.cpp.o
 .PHONY : test/str.o
 
@@ -410,6 +434,9 @@ help:
 	@echo "... test/ldr.o"
 	@echo "... test/ldr.i"
 	@echo "... test/ldr.s"
+	@echo "... test/misc.o"
+	@echo "... test/misc.i"
+	@echo "... test/misc.s"
 	@echo "... test/str.o"
 	@echo "... test/str.i"
 	@echo "... test/str.s"

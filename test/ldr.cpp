@@ -44,10 +44,10 @@ TEST_CASE("LDR_LITERAL loads word")
 
     cpu.fetch_pc = 0x40;
 
-    // PC in Thumb literal load is Align(PC+4)
-    cpu.write32(0x44, 1234);
-
-    cpu.writeFlash16(0x40, 0x4900); // ldr r1,[pc,#0]
+    // PC = Align(0x40 + 4, 4) = 0x44
+    // imm8 = 1 -> offset = 4
+    cpu.writeFlash32(0x44, 1234);
+    cpu.writeFlash16(0x40, 0x4900); // ldr r1,[pc,#4]
 
     cpu.test(4);
 
@@ -64,7 +64,7 @@ TEST_CASE("LDRB_IMM loads byte")
 
     cpu.write8(0x20000052, 77);
 
-    cpu.writeFlash16(0x40, 0x7882); // ldrb r1,[r0,#2]
+    cpu.writeFlash16(0x40, 0x7881); // ldrb r1,[r0,#2]
 
     cpu.test(4);
 
@@ -98,6 +98,8 @@ TEST_CASE("LDRH_IMM loads halfword")
     cpu.fetch_pc = 0x40;
 
     cpu.write16(0x20000052, 123);
+    cpu.write16(0x20000052 + 2, 0x000); // -32768
+    cpu.write16(0x20000052 + 4, 0x000); // -32768
 
     cpu.writeFlash16(0x40, 0x8841); // ldrh r1,[r0,#2]
 
@@ -152,6 +154,8 @@ TEST_CASE("LDRSH_REG sign extends halfword")
     cpu.fetch_pc = 0x40;
 
     cpu.write16(0x20000052, 0x8000); // -32768
+    cpu.write16(0x20000052 + 2, 0x000); // -32768
+    cpu.write16(0x20000052 + 4, 0x000); // -32768
 
     cpu.writeFlash16(0x40, 0x5E81); // ldrsh r1,[r0,r2]
 
@@ -159,4 +163,29 @@ TEST_CASE("LDRSH_REG sign extends halfword")
 
     REQUIRE(cpu.regs[1] == 0xFFFF8000);
     REQUIRE(cpu.cycle == 4);
+}
+
+TEST_CASE("LDMIA loads multiple registers and updates base")
+{
+    Cpu cpu(0x1000, 0x1000);
+    cpu.reset();
+
+    cpu.regs[0] = 0x20000050;
+    cpu.fetch_pc = 0x40;
+
+    // Memory contents to load
+    cpu.write32(0x20000050, 5);
+    cpu.write32(0x20000054, 10);
+
+    cpu.writeFlash16(0x40, 0xC806); // ldmia r0!, {r1,r2}
+
+    cpu.test(5);
+
+    REQUIRE(cpu.regs[1] == 5);
+    REQUIRE(cpu.regs[2] == 10);
+
+    // Base register incremented by 2 words
+    REQUIRE(cpu.regs[0] == 0x20000058);
+
+    REQUIRE(cpu.cycle == 5);
 }

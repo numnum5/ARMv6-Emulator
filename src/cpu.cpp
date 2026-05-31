@@ -117,10 +117,19 @@ void Cpu::write32(uint32_t address, uint32_t value)
 
 void Cpu::writeFlash16(uint32_t address, uint16_t value)
 {
-
     printf("write16(): address: %x\n", address);
+    address = address - FLASH_BASE;
     this->flash[address] = value & 0xFF;
     this->flash[address + 1] = (value >> 8) & 0xFF;
+}
+
+void Cpu::writeFlash32(uint32_t address, uint16_t value)
+{
+    address = address - FLASH_BASE;
+    this->flash[address] = value & 0xFF;
+    this->flash[address + 1] = (value >> 8) & 0xFF;
+    this->flash[address + 2] = (value >> 16) & 0xFF;
+    this->flash[address + 3] = (value >> 24) & 0xFF;
 }
 
 void Cpu::write16(uint32_t address, uint16_t value)
@@ -143,17 +152,8 @@ void Cpu::write16(uint32_t address, uint16_t value)
 
 void Cpu::write8(uint32_t address, uint8_t value)
 {
-
-
-     if (address == 0x00000fec)
-    {
-        printf("THIS IS WRITING TO 0x00000fec\n");
-
-
-
-        // while(1);
-    }
     fprintf(stderr, "write8(): address: %x, value: %c\n", address, value);
+
     address = address - RAM_BASE;
     this->ram[address] = value;
 }
@@ -164,28 +164,29 @@ uint8_t Cpu::read8(uint32_t address) const
     if (address < RAM_BASE)
     {    
         address = address - FLASH_BASE;
-
-        uint8_t data = this->flash[address];
-
-        fprintf(stderr,"read8(): Reading Flash\n");
-        fprintf(stderr,"Reading: Flash Address: %d\n", address);
-        fprintf(stderr,"FLASH DATA: %c\n", data);   
-        
+        uint8_t data = this->flash[address];  
         return data;
     }
     else
     {
         fprintf(stderr, "read8(): RAM\n");
-
         address = address - RAM_BASE;
         uint8_t data = this->ram[address];
-
         return data;
     }
 }
 
 uint16_t Cpu::read16(uint32_t address) const 
 {
+    if (address < RAM_BASE)
+    {    
+        address = address - FLASH_BASE;
+    }
+    else
+    {
+        address = address - RAM_BASE;
+    }
+
     uint32_t data = this->ram[address] | (this->ram[address + 1] << 8);
 
     return data;

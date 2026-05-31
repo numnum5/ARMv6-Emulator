@@ -675,8 +675,7 @@ case Opcode::ADD_SP_T2:
                     1
                 );
 
-            regs[DE_latch.destination] =
-                result.result;
+            regs[DE_latch.destination] = result.result;
 
             setAPSRValues(
                 result.carry_out,
@@ -698,8 +697,7 @@ case Opcode::ADD_SP_T2:
                     xpsr.C()
                 );
 
-            regs[DE_latch.destination] =
-                result.result;
+            regs[DE_latch.destination] = result.result;
 
             setAPSRValues(
                 result.carry_out,
@@ -721,8 +719,7 @@ case Opcode::ADD_SP_T2:
                     1
                 );
 
-            regs[DE_latch.destination] =
-                result.result;
+            regs[DE_latch.destination] = result.result;
 
             setAPSRValues(
                 result.carry_out,
@@ -738,15 +735,9 @@ case Opcode::ADD_SP_T2:
         case Opcode::SUB_IMM_T1:
         case Opcode::SUB_IMM_T2:
         {
-            auto result =
-                addWithCarry(
-                    regs[DE_latch.n],
-                    ~DE_latch.imm32,
-                    1
-                );
+            auto result = addWithCarry(regs[DE_latch.n], ~DE_latch.imm32, 1);
 
-            regs[DE_latch.destination] =
-                result.result;
+            regs[DE_latch.destination] = result.result;
 
             setAPSRValues(
                 result.carry_out,
@@ -761,9 +752,7 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::TST:
         {
-            uint32_t result =
-                regs[DE_latch.n] &
-                regs[DE_latch.m];
+            uint32_t result = regs[DE_latch.n] & regs[DE_latch.m];
 
             setAPSRValues(
                 xpsr.C(),
@@ -782,15 +771,14 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::LDR_LITERAL:
         {
+            printf("Opcode::LDR_LITERAL\n");
             switch (DE_latch.state)
             {
                 case Execute::ALU:
                 {
-                    uint32_t base =
-                        (DE_latch.pc + 4) & ~0x3;
-
-                    DE_latch.read_address =
-                        base + DE_latch.imm32;
+                    uint32_t base = (DE_latch.pc + 4) & ~0x3;
+                    DE_latch.read_address = base + DE_latch.imm32;
+                    printf("base: %x. addr: %x\n", base, DE_latch.read_address);
 
                     DE_latch.state = Execute::MEMORY;
                     stall = true;
@@ -799,12 +787,9 @@ case Opcode::ADD_SP_T2:
 
                 case Execute::MEMORY:
                 {
+                    printf("addr: %x, value32: %x\n", DE_latch.read_address, read32(DE_latch.read_address));
                     regs[DE_latch.t] = read32(DE_latch.read_address);
-
-                    DE_latch.state = Execute::ALU;
                     stall = false;
-
-                    printf("Opcode::LDR_LITERAL\n");
                     break;
                 }
             }
@@ -817,9 +802,7 @@ case Opcode::ADD_SP_T2:
             {
                 case Execute::ALU:
                 {
-                    DE_latch.read_address =
-                        regs[DE_latch.n] +
-                        DE_latch.imm32;
+                    DE_latch.read_address = regs[DE_latch.n] + DE_latch.imm32;
 
                     DE_latch.state = Execute::MEMORY;
                     stall = true;
@@ -848,9 +831,7 @@ case Opcode::ADD_SP_T2:
                 case Execute::ALU:
                 {
                     // SP-relative
-                    DE_latch.read_address =
-                        regs[13] +
-                        DE_latch.imm32;
+                    DE_latch.read_address = regs[13] + DE_latch.imm32;
 
                     DE_latch.state = Execute::MEMORY;
                     stall = true;
@@ -859,8 +840,7 @@ case Opcode::ADD_SP_T2:
 
                 case Execute::MEMORY:
                 {
-                    regs[DE_latch.t] =
-                        read32(DE_latch.read_address);
+                    regs[DE_latch.t] = read32(DE_latch.read_address);
 
                     DE_latch.state = Execute::ALU;
                     stall = false;
@@ -978,6 +958,8 @@ case Opcode::ADD_SP_T2:
             {
                 case Execute::ALU:
                 {
+
+                    printf("%d\n", DE_latch.n);
                     DE_latch.read_address =
                         regs[DE_latch.n] +
                         shift(
@@ -1008,7 +990,9 @@ case Opcode::ADD_SP_T2:
         }
 
         case Opcode::LDRH_IMM:
-        {
+        { 
+            printf("Opcode::LDRH_IMM\n");
+             printf("%d\n", DE_latch.n);
             switch (DE_latch.state)
             {
                 case Execute::ALU:
@@ -1024,12 +1008,11 @@ case Opcode::ADD_SP_T2:
 
                 case Execute::MEMORY:
                 {
-                    regs[DE_latch.t] =
-                        (uint32_t)read16(DE_latch.read_address);
+
+                    printf("addr: %x\n", DE_latch.read_address);
+                    regs[DE_latch.t] =  (uint32_t)read16(DE_latch.read_address);
 
                     stall = false;
-
-                    printf("Opcode::LDRH_IMM\n");
                     break;
                 }
             }
@@ -1077,13 +1060,12 @@ case Opcode::ADD_SP_T2:
       
         case Opcode::LDRSH:
         {
+             printf("Opcode::LDRSH\n");
             switch (DE_latch.state)
             {
                 case Execute::ALU:
                 {
-                    DE_latch.read_address = regs[DE_latch.n] + shift(
-                        regs[DE_latch.m],
-                        SRType_LSL,
+                    DE_latch.read_address = regs[DE_latch.n] + shift(regs[DE_latch.m],SRType_LSL,
                         0,
                         xpsr.C()
                     );
@@ -1098,11 +1080,15 @@ case Opcode::ADD_SP_T2:
                 {
                     uint16_t value = read16(DE_latch.read_address);
 
+
+                    printf("val: %x\n", value);
+                    // while(1);
+
                     regs[DE_latch.t] = sign_extend(value, 16);
 
                     stall = false;
 
-                    printf("Opcode::LDRSH\n");
+                   
                     break;
                 }
             }
@@ -1226,19 +1212,16 @@ case Opcode::ADD_SP_T2:
                     stall = true;
 
                     printf("STR_REG ADDRESS\n");
-                    break;
+                    return;
                 }
                 
                 case Execute::MEMORY:
                 {
-                    printf("RAMMMMM: %d\n", regs[DE_latch.t]);
-
                     printf("STRB_REG MMEMORY\n");
-                    //write8(DE_latch.write_address,regs[DE_latch.t] & 0xFF);
+                    write8(DE_latch.write_address,regs[DE_latch.t] & 0xFF);
                     stall = false;
-                    break;
+                    return;
                 }
-
             }
 
             break;
@@ -1410,17 +1393,11 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::STMIA:
         {   
-            // while(1);
             switch (DE_latch.popState)
             {
                 case MultipleInstrucitonState::SETUP:
                 {
-                    printf("Opcode::STMIA SetUp\n");
-
                     uint32_t address = regs[DE_latch.n];
-
-                    printf("address:: %x\n", address);
-
                     if (DE_latch.wback)
                     {
                         regs[DE_latch.n] += 4 * DE_latch.register_list_count;
@@ -1428,35 +1405,23 @@ case Opcode::ADD_SP_T2:
 
                     DE_latch.write_address = address;
                     DE_latch.popState = MultipleInstrucitonState::TRANSFER;
-                    
                     DE_latch.pop_push_iteration = 0;
                     
                     stall = true;
-
                     break;
                 }
 
                 case MultipleInstrucitonState::TRANSFER:
                 {
-
-                    printf("Opcode::STMIA trasnfer, %d\n", DE_latch.register_list_decoded.size());
                     if (DE_latch.pop_push_iteration < DE_latch.register_list_decoded.size())
                     {
-
-                        printf("ADOIHJAOIDHJOWRIJROIWIURHIROUWHIUWHRIUHWRUUOIWRH\n");
                         uint8_t reg_num = DE_latch.register_list_decoded[DE_latch.pop_push_iteration];
-                        
-                        
-                        printf(" addr: %d\n", DE_latch.write_address);
-
-                        printf(" reg _num: %d\n",reg_num);
                         write32(DE_latch.write_address, regs[reg_num]);
                         
                         DE_latch.pop_push_iteration++;
                         DE_latch.write_address+=4;
                         if (DE_latch.pop_push_iteration >= DE_latch.register_list_decoded.size())
                         {
-                            printf("ADOIHJAOIDHJOWRIJROIWIURHIROUWHIUWHRIUHWRUUOIWRH\n");
                             stall = false;
                             return;
                         }
@@ -1474,14 +1439,16 @@ case Opcode::ADD_SP_T2:
         case Opcode::PUSH:
         {
             printf("Opcode::PUSH\n");
-            
             switch(DE_latch.popState)
             {
                 case MultipleInstrucitonState::SETUP:
                 {
                     DE_latch.pop_push_address = regs[13] - (4 * DE_latch.register_list_count);
                     regs[13] -= (4 *DE_latch.register_list_count);
+                    DE_latch.pop_push_iteration = 0;
+
                     printf("Address: %x\n", regs[13]);
+
                     DE_latch.popState = MultipleInstrucitonState::TRANSFER;
                     stall = true;
                     break;
@@ -1536,73 +1503,58 @@ case Opcode::ADD_SP_T2:
             {
                 case MultipleInstrucitonState::SETUP:
                 {
-                    // uint32_t address = regs[13];
-                    DE_latch.pop_push_address = regs[13] + (4 * DE_latch.register_list_count);
-                    regs[13] += (4 *DE_latch.register_list_count);
-                    printf("Address: %x\n", regs[13]);
+                    printf("Setup: SP: %x\n", regs[13]);
+                    DE_latch.write_address = regs[13];
+                    regs[13] += (4 * DE_latch.register_list_count);
                     DE_latch.popState = MultipleInstrucitonState::TRANSFER;
+
                     stall = true;
                     break;
                 }
 
                 case MultipleInstrucitonState::TRANSFER:
                 {
-                    if (DE_latch.pop_push_cycles > 0)
+                    if (DE_latch.pop_push_iteration < DE_latch.register_list_decoded.size())
                     {
-                        for (int i = DE_latch.pop_push_iteration; i < 8; i++)
+                        uint8_t reg_num = DE_latch.register_list_decoded[DE_latch.pop_push_iteration];
+                        regs[reg_num] = read32(DE_latch.write_address);
+                        printf("write address: %x, POP reg_num: %d, val: %d\n", DE_latch.write_address, reg_num, regs[reg_num]);
+                        DE_latch.write_address += 4;
+                        DE_latch.pop_push_iteration++;
+                        
+                        if (DE_latch.pop_push_iteration >= DE_latch.register_list_decoded.size())
                         {
-                            if (DE_latch.register_list & (1u << i))
+                            if (DE_latch.push_pop_M)
                             {
-                                regs[i] = read32(DE_latch.pop_push_address);
-                                DE_latch.pop_push_address += 4;
-                                DE_latch.pop_push_cycles--;
-
-                                if (DE_latch.pop_push_cycles == 0)
-                                {
-                                    if (DE_latch.push_pop_M)
-                                    {
-                                        DE_latch.popState = MultipleInstrucitonState::LINK;
-                                        DE_latch.read_address = DE_latch.pop_push_address ;
-                                        stall = true;
-                                        return;
-                                    }
-                                    stall = false;
-                                    return;
-                                }
-
-                                DE_latch.pop_push_iteration = i + 1;
-
+                                DE_latch.popState = MultipleInstrucitonState::LINK;
+                                DE_latch.read_address = DE_latch.write_address;
                                 stall = true;
-                                return; // ONE transfer this cycle
+                                return;
                             }
+                            
+                            stall = false;
+                            return;
                         }
+                        stall = true;
+                        return;
                     }
-                    
                    // DE_latch.popState = MultipleInstrucitonState::SETUP;
                     break;
                 }
 
                 case MultipleInstrucitonState::LINK:
                 {
-                    if (DE_latch.push_pop_M)
-                    {
-                        uint32_t value = read32(DE_latch.read_address);
+                    uint32_t value = read32(DE_latch.read_address);
 
-                        printf("POP pc raw=%08x from %08x\n",
-                            value,
-                            DE_latch.read_address);
+                    printf("POP pc raw=%08x from %08x\n", value, DE_latch.read_address);
 
-                        this->branch_pc = BXWritePC2(value);
+                    this->branch_pc = BXWritePC2(value);
 
-                        printf("branch pc=%08x\n",
-                            this->branch_pc);
+                    printf("branch pc=%08x\n", this->branch_pc);
 
-                        cycle++;
-
-                        branch_taken = true;
-                        stall = false;
-                        flush = true;
-                    }
+                    branch_taken = true;
+                    stall = false;
+                    flush = true;
                 }
             }
             break;
@@ -2252,21 +2204,20 @@ Opcode Cpu::decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1)
 
                 return Opcode::ADD_SP_T1;
             }
+
             break;
         }
 
         case 0b01: // CMP (high register)
         {
-            fprintf(stderr,
-                    "CMP (Register)\n");
+            fprintf(stderr, "CMP (Register)\n");
 
             uint8_t n = d;
 
             // both low regs = unpredictable
             if (n < 8 && m < 8)
             {
-                std::cerr
-                    << "Unpredictable\n";
+                std::cerr << "Unpredictable\n";
                 return Opcode::INVALID;
             }
 
@@ -2285,7 +2236,6 @@ Opcode Cpu::decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1)
             fprintf(stderr,"MOV (Register) Spec\n");
 
             return Opcode::MOV_REG;
-            break;
         }
 
         case 0b11: // BX / BLX
@@ -2293,12 +2243,9 @@ Opcode Cpu::decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1)
             if (H1)
             {
                 return Opcode::BX;
-
             }
 
             return Opcode::BLX;
-
-            break;
         }
     }
 }
@@ -2321,21 +2268,17 @@ Opcode Cpu::decode_load_store_imm(uint8_t opcode)
     {
         case 0b00: // STR (word)
         {
-            
             return Opcode::STR_IMM;
         }
 
         case 0b01: // LDR (word)
         {
             return Opcode::LDR_IMM;
-
         }
 
         case 0b10: // STRB
         {
             return Opcode::STRB_IMM;
-
-            break;
         }
 
         case 0b11: // LDRB
@@ -2349,9 +2292,6 @@ Opcode Cpu::decode_load_store_imm(uint8_t opcode)
             return Opcode::INVALID;
     }
 }
-
-
-
 
 Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unordered_map<uint8_t, uint32_t> & registers_read)
 {
@@ -2411,21 +2351,34 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
             DE_latch.register_list = register_list | (M << 15);
             DE_latch.registers_read.emplace(13, regs[13]);
             DE_latch.register_list_count = std::bitset<16>(DE_latch.register_list).count();
+        
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                if (DE_latch.register_list & (1u << i))
+                {
+                    DE_latch.register_list_decoded.push_back(i);
+                }
+            }
+            
             DE_latch.pop_push_cycles = std::bitset<16>(DE_latch.register_list).count();
             DE_latch.push_pop_M = M;
+            DE_latch.popState =  MultipleInstrucitonState::SETUP;
 
             return Opcode::POP;
         } 
         else 
-        {   
-            printf("DOES THIS EVEN TGET ESXECUTED\n");
-            
+        {           
             DE_latch.register_list = register_list | (M << 14);
-            // while(1);
-            
-            printf("PUSH Register list: %d\n", DE_latch.register_list);
-            printf("BOOL M: %d\n", M);
             DE_latch.registers_read.emplace(13, regs[13]);
+
+            for (uint8_t i = 0; i <= 14; i++)
+            {
+                if (DE_latch.register_list & (1u << i))
+                {
+                        DE_latch.register_list_decoded.push_back(i);
+                }
+            }
+
             DE_latch.register_list_count = std::bitset<16>(DE_latch.register_list).count();
             DE_latch.pop_push_cycles = std::bitset<16>(DE_latch.register_list).count();
             DE_latch.popState = MultipleInstrucitonState::SETUP;
@@ -2447,7 +2400,6 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
             case 0:
             {
                 return Opcode::SXTH;
-                // SXTH
             }
             case 1:
             {
@@ -2472,7 +2424,6 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
     }
 }
 
-
 void Cpu::decode_final(
     Pipeline& next,
     uint32_t instruction,
@@ -2494,13 +2445,8 @@ void Cpu::decode_final(
 
     auto cls = classify(instruction);
 
-    std::cout << "Thumb1Instruction: "
-              << std::bitset<16>((uint16_t)instruction)
-              << std::endl;
-
-    std::cout << "Class: "
-              << static_cast<int>(cls)
-              << std::endl;
+    std::cout << "Thumb1Instruction: " << std::bitset<16>((uint16_t)instruction) << std::endl;
+    std::cout << "Class: " << static_cast<int>(cls) << std::endl;
 
     switch (cls)
     {
@@ -2519,7 +2465,6 @@ void Cpu::decode_final(
 
             decode.destination = d;
             decode.m = m;
-
             decode.shift_t = result.type;
             decode.shift_n = result.n;
 
@@ -2566,23 +2511,14 @@ void Cpu::decode_final(
             if (immediate)
             {
                 decode.imm32 = (instruction >> 6) & 0x7;
-
-                decode.opcode =
-                    sub ? Opcode::SUB_IMM_T1
-                        : Opcode::ADD_IMM_T1;
+                decode.opcode = sub ? Opcode::SUB_IMM_T1 : Opcode::ADD_IMM_T1;
             }
             else
             {
                 uint8_t m = (instruction >> 6) & 0x7;
-
                 decode.m = m;
-
                 registers_read.emplace(m, regs[m]);
-
-                // You currently only have immediate opcodes
-                decode.opcode =
-                    sub ? Opcode::SUB_IMM_T1
-                        : Opcode::ADD_IMM_T1;
+                decode.opcode = sub ? Opcode::SUB_IMM_T1 : Opcode::ADD_IMM_T1;
             }
 
             break;
@@ -2692,11 +2628,8 @@ void Cpu::decode_final(
         {
             decode.state = Execute::ALU; 
             decode.t = (instruction >> 8) & 0x7;
-            decode.imm32 =
-                (instruction & 0xFF) << 2;
-
-            decode.opcode =
-                Opcode::LDR_LITERAL;
+            decode.imm32 = (instruction & 0xFF) << 2;
+            decode.opcode = Opcode::LDR_LITERAL;
 
             break;
         }

@@ -41,6 +41,7 @@ set_target_properties(emulator PROPERTIES
 add_executable(tests
     test/str.cpp
     test/ldr.cpp
+    test/misc.cpp
     ${EMULATOR_SOURCES}
 )
 
