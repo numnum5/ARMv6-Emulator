@@ -5,6 +5,7 @@ CMakeCache.txt
 compile_commands.json
 
 *.o
+*.log
 *.obj
 *.exe
 *.out
