@@ -7,7 +7,7 @@ void uart_putc(char c)
 
 void uart_puts(const char* s)
 {
-    while (*s)
+    while (*s != '\0')
     {
         uart_putc(*s++);
     }
@@ -105,6 +105,7 @@ void hlprintf(const char* fmt, ...)
 
             case 'x':
             {
+                uart_puts("[HEX]");
                 uint32_t v = va_arg(args, uint32_t);
                 uart_put_hex(v);
                 break;

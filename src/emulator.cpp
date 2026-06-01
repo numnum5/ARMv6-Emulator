@@ -1,4 +1,5 @@
 #include "emulator.hpp"
+
 enum CpuState
 {
     FETCH,
@@ -15,75 +16,19 @@ enum CpuState
 void Emulator::startCpu(void)
 {
 
-    std::cout << "RUNNING CODE OUTPUT:" << std::endl <<  std::endl;
 
-     
-
-    printf("%d\n", cpu.fetch_pc);
-
-    // Testing STMIA
-    // cpu.regs[0] = 0x20000000 + 80; // movs r0,#0x80
-    // cpu.writeFlash16(0x40 + 2, 0x2105); // movs r1,#5
-    // cpu.writeFlash16(0x40 + 4, 0x220A); // movs r2,#10
-    // cpu.writeFlash16(0x40 + 6, 0xC006); // stmia r0!, {r1,r2}
-
-    // Testing PUSH
-    // cpu.writeFlash16(0x40, 0x2005);
-    // cpu.writeFlash16(0x40 + 2, 0x210A);
-    // cpu.writeFlash16(0x40 + 4, 0x1842);
-    // cpu.writeFlash16(0x40 + 6, 0xB507);
-    
-    cpu.regs[0] = 0x20000050;
-    cpu.writeFlash16(0x40,     0x212A); // movs r1,#42
-    cpu.writeFlash16(0x40 + 2, 0x6041); // str r1,[r0,#4]
-
-    cpu.test(11);
-
-
-    auto val1 = cpu.read32(0x20000000 + 80);
-    auto val2 = cpu.read32(0x20000000 + 80 + 4);
-
-
-    printf("%d : %d\n", val1, val2);
-
-
-
-    // printf("%c\n", cpu.flash[0x0000031c]);
-    // printf("%c\n", cpu.flash[0x0000031d]);
-    // printf("%c\n", cpu.flash[0x0000031e]);
-// for (int i = 0; i < 400; i += 2)
-// {
-//     printf("PC: %d\n", i);
-
-//     uint16_t instruction =
-//         static_cast<uint16_t>(cpu.flash[i]) |
-//         (static_cast<uint16_t>(cpu.flash[i + 1]) << 8);
-
-//     std::cout << std::hex << instruction << std::endl;
-// }
-
-    // for(;;)
-    // for (int i = 0 ; i < 200; i++)
+    // for(uint16_t i = 0; i < 1000; i+=2)
     // {
-    //     cpu.currentInstrAddr = cpu.regs[15];
-    //     fprintf(stderr, "PC: %d\n", cpu.regs[15]);
+    //     auto val = cpu.read16(i);
 
-    //     cpu.fetch();
-    //     cpu.tick();
-    //     cpu.handleAsyncrnousExceptions();
-    //     cpu.decode();    
-    //     cpu.tick();
-    //     cpu.nextInstrAddr = cpu.currentInstrAddr + cpu.decodedInstructionSize;
-    //     cpu.handleAsyncrnousExceptions();
-    //     cpu.execute();
-    //     cpu.tick();
-    //     // Leave current isnt addr as it is the same 
-    //     // cpu.nextInstrAddr = cpu.regs[15];
-    //     cpu.handleSyncrnousExceptions();
-    //     cpu.handleAsyncrnousExceptions();
-    //     // cpu.print_state();
+    //     printf("PC: %d: instruction: %x\n", i, val);
     // }
-    // cpu.print_state();
+
+
+    FILE* file = fopen("output.log", "w");
+    cpu.output_file = file;
+    // cpu.test(600);
+    fclose(file);
 }
 
 void Emulator::write_block(uint32_t addr,
@@ -185,10 +130,6 @@ void Emulator::load_elf(const std::string& path)
         std::vector<uint8_t> buffer(phdr.p_filesz);
 
         file.read(reinterpret_cast<char*>(buffer.data()), phdr.p_filesz);
-
-
-        printf("RR\n");
-        //file.read(reinterpret_cast<char*>(&cpu.memory[addr]), phdr.p_filesz);
 
         if (!file)
             throw std::runtime_error("Failed reading segment data");

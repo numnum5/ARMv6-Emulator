@@ -6,8 +6,7 @@ int main(int argc, char ** argv)
 {
     if (argc < 2)
     {
-        std::cerr << "Usage: " << argv[0]
-                  << " <apsr_C file>\n";
+        std::cerr << "Usage: " << argv[0] << " <apsr_C file>\n";
         return 1;
     }
 
@@ -21,13 +20,7 @@ int main(int argc, char ** argv)
     }
 
     Emulator emu;
-
-
-    // Cpu cpu(0x1000, 0x1000);
-
-
-    // cpu.test();
-
+    
     emu.load_elf("firmware.elf");
     emu.startCpu();
 }

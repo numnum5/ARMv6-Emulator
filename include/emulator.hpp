@@ -9,6 +9,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <elf.h>
+
 #include "cpu.hpp"
 
 class Emulator {
