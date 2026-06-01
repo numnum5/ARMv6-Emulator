@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;600;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Orbitron', sans-serif;
+  --color-bg-base:    #060810;
+  --color-bg-panel:   #0B0E18;
+  --color-bg-card:    #0F1420;
+  --color-bg-hover:   #141928;
+  --color-border:     #1C2438;
+  --color-border-2:   #252E45;
+  --color-txt:        #B8CCE0;
+  --color-txt-dim:    #3D4E68;
+  --color-txt-bright: #E2F0FF;
+  --color-neon:       #00F5FF;
+  --color-lime:       #39FF7A;
+  --color-amber:      #FFB020;
+  --color-crimson:    #FF3355;
+  --color-violet:     #9B6DFF;
+  --color-blue:       #4488FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--color-bg-base);
+  color: var(--color-txt);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  height: 100vh;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--color-bg-base); }
+::-webkit-scrollbar-thumb { background: var(--color-border-2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-txt-dim); }
+
+@keyframes ticker {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.running-badge { animation: ticker 1s ease-in-out infinite; }
