@@ -63,6 +63,7 @@ set_target_properties(emulator PROPERTIES
 # ----------------------------
 add_executable(server
     ${API_SOURCES}
+    ${EMULATOR_SOURCES}
 )
 
 target_include_directories(server
