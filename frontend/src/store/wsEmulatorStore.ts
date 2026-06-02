@@ -51,4 +51,4 @@ export function wsRun() {
 
 export function wsPause() {
   socket?.send('pause');
-}5
+}
