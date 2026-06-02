@@ -54,7 +54,12 @@ export function Toolbar() {
   // Incoming messages → push into store
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
+
+
+      console.log("message received\n");
       const resp = JSON.parse(event.data);
+
+
       if (resp.type === 'state') {
         useEmulatorStore.setState({
           cpuState: mapBackendState(resp.state),
