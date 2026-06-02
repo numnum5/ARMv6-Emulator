@@ -13,39 +13,23 @@
 #include "emulator.hpp"
 // #include "compiler.hpp"
 
+
 struct CpuState {
-    uint32_t regs[16];   // R0–R15 (R15 = PC)
-    uint32_t cpsr;
-    uint32_t spsr;
+    uint32_t regs[16];   // R0-R14
+    uint32_t pc;         // R15 / PC
     uint64_t cycles;
     bool halted;
-    std::string exception;  // empty string if none
-    
-    // Pipeline
-    std::optional<uint32_t> fetch;
-    std::optional<uint32_t> decode;
-    std::optional<uint32_t> execute;
-    uint32_t fetchAddr;
-    uint32_t decodeAddr;
-    uint32_t executeAddr;
 };
 
 template <>
 struct glz::meta<CpuState> {
     using T = CpuState;
+
     static constexpr auto value = glz::object(
-        "regs", &T::regs,
-        "cpsr", &T::cpsr,
-        "spsr", &T::spsr,
-        "cycles", &T::cycles,
-        "halted", &T::halted,
-        "exception", &T::exception,
-        "fetch", &T::fetch,
-        "decode", &T::decode,
-        "execute", &T::execute,
-        "fetchAddr", &T::fetchAddr,
-        "decodeAddr", &T::decodeAddr,
-        "executeAddr", &T::executeAddr
+        "regs",    &T::regs,
+        "pc",      &T::pc,
+        "cycles",  &T::cycles,
+        "halted",  &T::halted
     );
 };
 
@@ -107,14 +91,23 @@ int main()
 
             if (message == "step") {
                 emu.cpu.step();
-                // WsResponse resp{
-                //     .type = "state",
-                //     .state = emu.cpu.getState()  // fill CpuState from your cpu fields
-                // };
+
+                CpuState state{
+                    // .regs = {0},
+                    .pc = emu.cpu.fetch_pc,
+                    .cycles = emu.cpu.cycle,
+                    .halted = false
+                };
+                std::memcpy(state.regs, emu.cpu.regs, sizeof(state.regs));
+
+                std::string json;
+                glz::write_json(state, json);
+
+                ws.text(true);
+                ws.write(boost::asio::buffer(json));
                 // ws.text(true);
                 // ws.write(net::buffer(glz::write_json(resp).value()));
-                ws.write(net::buffer(
-                    "cycle executed"));
+                // ws.write(net::buffer("cycle executed"));
             }
             else if (message == "cycle")
             {

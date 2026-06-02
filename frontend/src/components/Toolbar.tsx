@@ -52,21 +52,20 @@ export function Toolbar() {
   const isBackend  = wsStatus === 'connected';
 
   // Incoming messages → push into store
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-
-
-      console.log("message received\n");
+  const handleMessage = useCallback((event: MessageEvent) => 
+  {
+    try 
+    {
       const resp = JSON.parse(event.data);
-
-
       if (resp.type === 'state') {
         useEmulatorStore.setState({
           cpuState: mapBackendState(resp.state),
           runState: resp.state.halted ? 'halted' : 'paused',
         });
       }
-    } catch {
+    } 
+    catch 
+    {
       console.warn('WS: bad JSON', event.data);
     }
   }, []);

@@ -24,10 +24,15 @@ void Emulator::startCpu(void)
     //     printf("PC: %d: instruction: %x\n", i, val);
     // }
 
-
+    cpu.cycle = 0;
     FILE* file = fopen("output.log", "w");
     cpu.output_file = file;
-    // cpu.test(600);
+    
+    while(true)
+    {
+        cpu.step();
+    }
+
     fclose(file);
 }
 
