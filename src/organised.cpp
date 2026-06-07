@@ -1,18 +1,28 @@
 #include "cpu.hpp"
 
 
-uint32_t Cpu::BXWritePC2(uint32_t address)
+void Cpu::BXWritePC2(uint32_t address)
 {
     if (currentMode == Mode::MODE_HANDLER && (address >> 28 & 0xF) == 0b1111)
     {
         std::cerr << "BXWritePC" << "exception return" << std::endl; 
-        while(1);   
-    //  ExceptionReturn(address<27:0>);
+        // while(1);   
+
+
+        fprintf(stderr, "BXWritePC Address: %x\n", address);
+        // while(1);
+        // return address & ~1u;
+        exceptionReturn(address & ((1u << 28) - 1));
+
+        // while (1);
+        // {
+        //     /* code */
+        // }
     }
     else
     {
         this->xpsr.setT(address & 0b1);
-        return address & ~1u;
+        this->branch_pc = address & ~1u;
     }
 }
 
@@ -35,51 +45,52 @@ void Cpu::print_mem()
 }
 
 void Cpu::execute_final(DecodeExecuteLatch& DE_latch,
-                        DecodeExecuteLatch& next)
+                        DecodeExecuteLatch& next, 
+                        bool & instruction_retired)
 {
     switch (DE_latch.opcode)
     {
-case Opcode::SUB_SP_T1:
-{
-    printf(
-        "SUB_SP pc=%x before=%x imm=%u\n",
-        DE_latch.pc,
-        regs[13],
-        DE_latch.imm32
-    );
+        case Opcode::SUB_SP_T1:
+        {
+            printf(
+                "SUB_SP pc=%x before=%x imm=%u\n",
+                DE_latch.pc,
+                regs[13],
+                DE_latch.imm32
+            );
 
-    printf("imm32: %d\n", DE_latch.imm32);
+            printf("imm32: %d\n", DE_latch.imm32);
 
-    regs[13] -= DE_latch.imm32;
+            regs[13] -= DE_latch.imm32;
 
-    printf(
-        "SUB_SP after=%x\n",
-        regs[13]
-    );
+            printf(
+                "SUB_SP after=%x\n",
+                regs[13]
+            );
 
-    break;
-}
+            break;
+        }
 
-case Opcode::ADD_SP_T2:
-{
-    printf(
-        "ADD_SP pc=%x before=%x imm=%u\n",
-        DE_latch.pc,
-        regs[13],
-        DE_latch.imm32
-    );
+        case Opcode::ADD_SP_T2:
+        {
+            printf(
+                "ADD_SP pc=%x before=%x imm=%u\n",
+                DE_latch.pc,
+                regs[13],
+                DE_latch.imm32
+            );
 
-    printf("imm32: %d\n", DE_latch.imm32);
+            printf("imm32: %d\n", DE_latch.imm32);
 
-    regs[DE_latch.destination] += DE_latch.imm32;
+            regs[DE_latch.destination] += DE_latch.imm32;
 
-    printf(
-        "ADD_SP: after=%x\n",
-        regs[13]
-    );
+            printf(
+                "ADD_SP: after=%x\n",
+                regs[13]
+            );
 
-    break;
-}
+            break;
+        }
         case Opcode::INVALID:
         {
             printf("Opcode::INVALID\n");
@@ -131,8 +142,7 @@ case Opcode::ADD_SP_T2:
         {
             regs[14] = (DE_latch.pc + 2) | 1;
 
-           this->branch_pc =
-                BXWritePC2(regs[DE_latch.m]);
+            BXWritePC2(regs[DE_latch.m]);
 
             branch_taken = true;
             flush = true;
@@ -143,8 +153,7 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::BX:
         {
-            this->branch_pc =
-                BXWritePC2(regs[DE_latch.m]);
+            BXWritePC2(regs[DE_latch.m]);
 
             branch_taken = true;
             flush = true;
@@ -1547,7 +1556,7 @@ case Opcode::ADD_SP_T2:
 
                     printf("POP pc raw=%08x from %08x\n", value, DE_latch.read_address);
 
-                    this->branch_pc = BXWritePC2(value);
+                    BXWritePC2(value);
 
                     printf("branch pc=%08x\n", this->branch_pc);
 
@@ -1585,7 +1594,11 @@ case Opcode::ADD_SP_T2:
 
         case Opcode::SVC:
         {
+            exceptionPending[11] = true;
+
+            regs[15] = DE_latch.pc;
             printf("Opcode::SVC\n");
+            // while(1);
             break;
         }
 
@@ -1762,6 +1775,7 @@ void Cpu::test(uint32_t cycles)
 
 }
 
+
 void Cpu::step()
 {
     Pipeline next = {};
@@ -1771,15 +1785,17 @@ void Cpu::step()
 
     stage_fetch(flash.data(), next);
     
+    // handle exception at instruction bonudary
+    if (instructionRetired)
+    {
+        this->handleSyncrnousExceptions(pipeline.DE_latch.pc);
+        std::cout << "instruction retired\n";
+    }
+
     commit(next);
     
     cycle++;
 
-    // handle exception at instruction bonudary
-    if (instructionRetired)
-    {
-        std::cout << "instruction retired\n";
-    }
     //print_mem();
     printf("Cycles: %d\n", cycle);
     print_state(stdout);
@@ -1792,8 +1808,10 @@ bool Cpu::stage_execute(Pipeline& next)
         return false;
     }
 
+    bool instruction_retired = false;
+
     fprintf(stderr, "PC: %d\n", pipeline.DE_latch.pc);
-    execute_final(pipeline.DE_latch, next.DE_latch);
+    execute_final(pipeline.DE_latch, next.DE_latch, instruction_retired);
     printf("[EXECUTE] PC: %u\n", pipeline.DE_latch.pc);  
 
     return true;
@@ -1911,10 +1929,6 @@ void Cpu::handle_32bit_instruction(uint32_t instruction, DecodeExecuteLatch & de
             {
                 uint8_t n = second & 0x7;
                 uint8_t sysm = first & 0xFF;
-
-                // decoded.decodedThumb2Instruction._MSRInstruction = MSR(n, sysm);
-                // decoded.thumb2Class = BRANCH_MISC;
-                // decoded.branch_misc_type = MSR_Instruction;
             
             }
             // ISB, DMS, DMB
@@ -2015,9 +2029,6 @@ void Cpu::handle_32bit_instruction(uint32_t instruction, DecodeExecuteLatch & de
 
                 decode.imm32 = imm32;
                 decode.opcode = Opcode::BL;
-                // decoded.decodedThumb2Instruction._BranchLinkInstruction = BranchLinkInstruction(instruction);
-                // decoded.thumb2Class = BRANCH_MISC;
-                // decoded.branch_misc_type = BL;
             }
             break;
         }
@@ -2297,6 +2308,7 @@ Opcode Cpu::decode_misc(uint16_t instr, DecodeExecuteLatch & DE_latch, std::unor
     if ((instr & 0xFFFF) == 0b1101111100000000) 
     {
         fprintf(stderr, "SVC Thumb1Instruction");
+        // while(1);
         return Opcode::SVC;
     }
 

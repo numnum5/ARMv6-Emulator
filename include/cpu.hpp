@@ -418,8 +418,8 @@ class Cpu
         bool branch_taken = false;
 
         void writeFlash16(uint32_t address, uint16_t value);
-        uint32_t BXWritePC2(uint32_t address);
-        void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next);
+        void BXWritePC2(uint32_t address);
+        void execute_final(DecodeExecuteLatch & DE_latch, DecodeExecuteLatch & next, bool & instruction_retired);
         void test(uint32_t cycles);
         void step();
         Opcode decode_special(uint8_t opcode, uint8_t d, uint8_t m, bool H1);
@@ -474,22 +474,22 @@ class Cpu
         uint32_t LSR(uint32_t x, int shift);
         uint32_t ROR(uint32_t x, int shift);
         uint32_t LSL(uint32_t x, int shift);
-        uint32_t returnAddress(int exceptionType);
+        uint32_t returnAddress(int exceptionType, uint32_t nextInstrAddr, uint32_t currentInstrAddr);
 
         void ALUWritePC(uint32_t address);
-        void pushStack(int ExceptionType);
+        void pushStack(int ExceptionType, uint32_t currentPc);
         void exceptionTaken(int32_t exceptionNumber);
         void BLXWritePC(uint32_t address);
-        void exceptionEntry(int32_t ExceptionType);
+        void exceptionEntry(int32_t ExceptionType, uint32_t currentPc);
         void BXWritePC(uint32_t address);
-        bool handleSyncrnousExceptions(void);
-        void handleAsyncrnousExceptions(void);
+        bool handleSyncrnousExceptions(uint32_t currentPc);
+        void handleAsyncrnousExceptions(uint32_t currentPc);
         void print_state(FILE* out = stderr) const;
         void deActivate(uint32_t exceptionNumber);
         void print_mem();
         void reset(void);
         void exceptionReturn(uint32_t EXC_RETURN);
-        void PopStack(uint32_t frameptr, uint32_t EXC_RETURN);
+        uint32_t PopStack(uint32_t frameptr, uint32_t EXC_RETURN);
 
     private:
 

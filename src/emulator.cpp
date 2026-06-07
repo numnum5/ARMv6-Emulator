@@ -28,7 +28,8 @@ void Emulator::startCpu(void)
     FILE* file = fopen("output.log", "w");
     cpu.output_file = file;
     
-    while(true)
+    for (int i = 0 ; i  < 100; i++)
+    // while(true)
     {
         cpu.step();
     }

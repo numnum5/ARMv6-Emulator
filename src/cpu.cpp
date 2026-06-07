@@ -80,6 +80,7 @@ void Cpu::write32(uint32_t address, uint32_t value)
     {
         this->scs.write32(address, value);
         fprintf(stderr, "write32: Address: %x\n", address);
+        // while(1);
         return;
     }
 
@@ -488,7 +489,7 @@ void Cpu::print_state(FILE* out) const
     fprintf(out, "-----------------\n\n");
 }
 
-uint32_t Cpu::returnAddress(int exceptionType)
+uint32_t Cpu::returnAddress(int exceptionType, uint32_t nextInstrAddr, uint32_t currentInstrAddr)
 {
     uint32_t result = 0;
 
@@ -496,18 +497,18 @@ uint32_t Cpu::returnAddress(int exceptionType)
     {
         case EXCEPTION_NMI:
         {
-            // result = nextInstrAddr;
-            // break;
+            result = nextInstrAddr;
+            break;
         }
 
         case EXCEPTION_HARDFAULT:
         {
-            // if (synchronous_fault)
-            //     // result = currentInstrAddr;
-            // else
-            // {
-
-            // }
+            if (synchronous_fault)
+                result = currentInstrAddr;
+            else
+            {
+                result = nextInstrAddr;
+            }
             //     // result = nextInstrAddr;
 
             break;
@@ -517,7 +518,7 @@ uint32_t Cpu::returnAddress(int exceptionType)
         case EXCEPTION_PENDSV:
         case EXCEPTION_SYSTICK:
         {
-            // result = nextInstrAddr;
+            result = nextInstrAddr;
             break;
         }
 
@@ -526,7 +527,7 @@ uint32_t Cpu::returnAddress(int exceptionType)
             // External interrupts
             if (exceptionType >= 16)
             {
-                // result = nextInstrAddr;
+                result = nextInstrAddr;
             }
             else
             {
@@ -543,9 +544,13 @@ uint32_t Cpu::returnAddress(int exceptionType)
     return result;
 }
 
-void Cpu::pushStack(int ExceptionType)
+
+
+void Cpu::pushStack(int ExceptionType, uint32_t currentPc)
 {
+
     fprintf(stderr, "pusing stack \n");
+    fprintf(stderr, "Test: %d\n", currentPc);
     // while(1);
     uint32_t frameptr;
     uint32_t frameptralign;
@@ -579,16 +584,16 @@ void Cpu::pushStack(int ExceptionType)
     write32(frameptr + 0x0C, regs[3]);
     write32(frameptr + 0x10, regs[12]);
     write32(frameptr + 0x14, regs[14]); // LR
-    write32(frameptr + 0x18, returnAddress(ExceptionType));
+    write32(frameptr + 0x18, returnAddress(ExceptionType, currentPc + 2, currentPc));
 
     // Insert alignment bit into stacked xPSR bit 9
     uint32_t stacked_psr = (xpsr.value & 0xFFFFFDFFu) |(frameptralign << 9);
 
     write32(frameptr + 0x1C, stacked_psr);
 
-    fprintf(stderr, "pushing registers done! xpsr: %x\n", xpsr.value);
-    // while(1);
-    fprintf(stderr, "mode: %d\n", this->currentMode);
+    // fprintf(stderr, "pushing registers done! xpsr: %x\n", xpsr.value);
+    // // while(1);
+    // fprintf(stderr, "mode: %d\n", this->currentMode);
 
     // while(1);
     if (this->currentMode == Mode::MODE_HANDLER)
@@ -611,13 +616,6 @@ void Cpu::pushStack(int ExceptionType)
 
 void Cpu::exceptionTaken(int32_t exceptionNumber)
 {
-    for (int i = 0; i <= 3; i++)
-    {
-        regs[i] = 0;
-    }
-
-    regs[12] = 0;
-
     this->xpsr.setAPSR(0);
 
     // Enter Handler mode
@@ -653,6 +651,8 @@ void Cpu::exceptionTaken(int32_t exceptionNumber)
     fprintf(stderr, "handler: %x\n", handler);
     // while(1);
     // Branch to handler
+    
+    // this->branch_pc = BLXWritePC2(handler);
     this->BLXWritePC(handler);
 
 }
@@ -660,11 +660,15 @@ void Cpu::exceptionTaken(int32_t exceptionNumber)
 void Cpu::BLXWritePC(uint32_t address)
 {   
     this->xpsr.setT(address & 0b1);
+
+    this->branch_taken = true;
+    this->flush = true;
+    this->branch_pc = address & ~1u;
     this->regs[15] = address & ~1u;
     std::cerr << "PC: after blxwrite: " << regs[15] << std::endl;
 }
 
-void Cpu::exceptionEntry(int32_t ExceptionType)
+void Cpu::exceptionEntry(int32_t ExceptionType, uint32_t currentPc)
 {
     fprintf(stderr, "Entering exception\n");
     uint16_t frameptraling = 0;
@@ -673,7 +677,7 @@ void Cpu::exceptionEntry(int32_t ExceptionType)
     {
         frameptraling = this->psp;
     }
-    pushStack(ExceptionType);
+    pushStack(ExceptionType, currentPc);
     exceptionTaken(ExceptionType); // ExceptionType is encoded as its exception number
 }
 
@@ -744,9 +748,10 @@ uint32_t Cpu::exceptionActiveBitCount() const
 {
     uint32_t count = 0;
 
-    for (bool active : exceptionActive)
+
+    for (uint16_t i = 0; i < 512; i++)
     {
-        if (active)
+        if (exceptionActive[i])
         {
             count++;
         }
@@ -757,25 +762,41 @@ uint32_t Cpu::exceptionActiveBitCount() const
 
 void Cpu::exceptionReturn(uint32_t EXC_RETURN)
 {
+
+   
+
+    // while(1);
     // EXC_RETURN[31:4] must all be 1
-    if ((EXC_RETURN & 0xFFFFFFF0u) != 0xFFFFFFF0u)
+    fprintf(stderr, "Exc retrun %x\n", EXC_RETURN);
+
+    if (((EXC_RETURN >> 4) & 0x00FFFFFFu) != 0x00FFFFFFu)
     {
-        // UNPREDICTABLE();
+        // UNPREDICTABLE
+        fprintf(stderr, "Unpredictable\n");
         return;
     }
 
     uint32_t returningExceptionNumber = this->xpsr.ipsr() & 0x3F;
 
+     fprintf(stderr, "EXCEPTION RETURN\n");
     uint32_t nestedActivation = exceptionActiveBitCount();
+
+
+     
 
     // Returning exception must actually be active
     if (!exceptionActive[returningExceptionNumber])
     {
-        // UNPREDICTABLE();
+        fprintf(stderr, "Unpredictable\n");
         return;
     }
 
     uint32_t frameptr = 0;
+
+    //    while(1);
+
+    fprintf(stderr, "MSP=%08x PSP=%08x\n", msp, psp);
+    fprintf(stderr, "EXC_RETURN low nibble = %x\n", EXC_RETURN & 0xF);
 
     switch (EXC_RETURN & 0xF)
     {
@@ -790,7 +811,7 @@ void Cpu::exceptionReturn(uint32_t EXC_RETURN)
                 return;
             }
 
-            frameptr = this->psp;
+            frameptr = this->msp;
 
             this->currentMode = Mode::MODE_HANDLER;
 
@@ -809,7 +830,7 @@ void Cpu::exceptionReturn(uint32_t EXC_RETURN)
                 return;
             }
 
-            frameptr = this->psp;
+            frameptr = this->msp;
 
             this->currentMode = Mode::MODE_THREAD;
 
@@ -851,7 +872,13 @@ void Cpu::exceptionReturn(uint32_t EXC_RETURN)
     //------------------------------------------------------
     // Restore stacked registers
     //------------------------------------------------------
-    PopStack(frameptr, EXC_RETURN);
+    uint32_t new_pc = PopStack(frameptr, EXC_RETURN);
+
+
+    fprintf(stderr, "new PC: %x\n", new_pc);
+    // while(1);
+    this->branch_pc = new_pc;
+    this->branch_taken = true;
 
     //------------------------------------------------------
     // Validate IPSR consistency
@@ -892,13 +919,15 @@ void Cpu::exceptionReturn(uint32_t EXC_RETURN)
     }
 }
 
-void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
+uint32_t Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
 {
     //--------------------------------------------------
     // Restore stacked registers
     //--------------------------------------------------
 
-    this->regs[0]  = read32(frameptr + 0x00);
+    fprintf(stderr, "frameptr: %x, and %x", frameptr, EXC_RETURN);
+
+    regs[0]  = read32(frameptr + 0x00);
     regs[1]  = read32(frameptr + 0x04);
     regs[2]  = read32(frameptr + 0x08);
     regs[3]  = read32(frameptr + 0x0C);
@@ -907,6 +936,25 @@ void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
     uint32_t pc  = read32(frameptr + 0x18);
     uint32_t psr = read32(frameptr + 0x1C);
 
+    fprintf(stderr,
+    "Unstacked frame:\n"
+    "R0  = %08x\n"
+    "R1  = %08x\n"
+    "R2  = %08x\n"
+    "R3  = %08x\n"
+    "R12 = %08x\n"
+    "LR  = %08x\n"
+    "PC  = %08x\n"
+    "xPSR= %08x\n",
+    regs[0],
+    regs[1],
+    regs[2],
+    regs[3],
+    regs[12],
+    regs[14],
+    pc,
+    psr
+);
     //--------------------------------------------------
     // Thumb bit validation
     //--------------------------------------------------
@@ -917,7 +965,9 @@ void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
     if ((pc) == 0)
     {
         // UNPREDICTABLE();
-        return;
+
+        fprintf(stderr, "UNPREDICTABLE\n");
+        return 0;
     }
 
     //--------------------------------------------------
@@ -925,13 +975,12 @@ void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
     //--------------------------------------------------
 
     this->regs[15] = pc;
-
+    fprintf(stderr, "POPstack(): PC: %x\n", pc);
     //--------------------------------------------------
     // Restore stack pointer
     //--------------------------------------------------
 
-    uint32_t align =
-        ((psr >> 9) & 1u) << 2;
+    uint32_t align = ((psr >> 9) & 1u) << 2;
 
     switch (EXC_RETURN & 0xF)
     {
@@ -968,7 +1017,7 @@ void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
         default:
         {
             // UNPREDICTABLE();
-            return;
+            return 0;
         }
     }
 
@@ -1010,9 +1059,11 @@ void Cpu::PopStack(uint32_t frameptr, uint32_t EXC_RETURN)
     //--------------------------------------------------
 
     xpsr.setT((psr >> 24) & 1u);
+
+    return regs[15];
 }
 
-void Cpu::handleAsyncrnousExceptions(void)
+void Cpu::handleAsyncrnousExceptions(uint32_t currentPc)
 {
     fprintf(stderr, "Handling pending asynchronous exceptions\n");
     if (exceptionPending[15])
@@ -1020,22 +1071,25 @@ void Cpu::handleAsyncrnousExceptions(void)
         fprintf(stderr, "Handling systick\n");
         exceptionPending[15] = false;
 
-        exceptionEntry(15);
+        exceptionEntry(15, currentPc);
         // while(1);
     }
 }
 
-bool Cpu::handleSyncrnousExceptions(void)
+bool Cpu::handleSyncrnousExceptions(uint32_t currentPc)
 {
     // highest priority exception selection later
     fprintf(stderr, "Handling pending syncrnous exceptions\n");
+    // while(1);
     if (exceptionPending[11])
     {
+        // while(1);
         fprintf(stderr, "Handling svc\n");
         exceptionPending[11] = false;
 
         // while(1);
-        exceptionEntry(11);
+        // while(1);
+        exceptionEntry(11, currentPc);
     }
 
     return true;

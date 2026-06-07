@@ -18,23 +18,14 @@ uint16_t add(uint16_t a)
 
 int main(void)
 {
+  // SYST_RVR = 100;
+  //   SYST_CVR = 0;
+  //   SYST_CSR = 7;
+    // add(15);
 
-    add(15);
-    // uart_putc('a');
-    // uart_putc('a');
-    // uart_putc('a');
-    // uart_putc('b');
-    // uart_putc('\n');
-    // uart_puts("Hello\n");  
-
-    // asm volatile(
-    //     "ldr r0, =0xDEADBEEF\n"
-    // );
-
-    // asm volatile(
-    //     "svc #0\n"
-    // );
-
+    asm volatile("svc #0");
+    uart_putc('a');
+    uart_putc('a');
     while(1);
 }
 

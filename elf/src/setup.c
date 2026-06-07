@@ -42,7 +42,7 @@ void SVC_Handler(void)
 {
     UART_DR = '@';
     UART_DR = '@';
-    while (1);
+    // while (1);
 }
 
 void PendSV_Handler(void)
