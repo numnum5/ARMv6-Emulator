@@ -1,19 +1,49 @@
 import { useState } from 'react';
 import { useEmulatorStore } from '../store/emulatorStore';
+import { useWebSocket } from "../emulator/ws";
 
-const COLS = 16;
+const COLS = 4;
 const ROWS = 14;
 
+  const NavBtn = ({ onClick, label }: { onClick: () => void; label: string }) => (
+    <button onClick={onClick}
+      className="px-2 py-0.5 text-[10px] bg-[var(--color-bg-hover)] border border-[var(--color-border-2)] text-[var(--color-txt-dim)] rounded-sm hover:text-[var(--color-neon)] hover:border-[var(--color-neon)]/50 cursor-pointer transition-colors">
+      {label}
+    </button>
+  );
+
 export function MemoryPanel() {
+
+ 
   const { cpu, cpuState, memViewAddr, setMemViewAddr } = useEmulatorStore();
   const [inputVal, setInputVal] = useState('');
   const base = memViewAddr & ~0xF;
   const pc = cpuState.regs[15];
   const sp = cpuState.regs[13];
+  
+  const ws = useWebSocket();
 
   const handleJump = () => {
-    const addr = parseInt(inputVal, 16);
-    if (!isNaN(addr)) setMemViewAddr(addr & ~0xF);
+      const addr = parseInt(inputVal, 16);
+
+
+      console.log(ws);
+      if (ws?.readyState === WebSocket.OPEN) {
+          console.log("Sending memory request");
+        const message = {
+                  type: "memory",
+                  address: addr
+              };
+
+        console.log("Sending:", message);
+        ws.send(JSON.stringify(message));
+      } else {
+          console.log("WebSocket not ready");
+      }
+
+      if (!isNaN(addr)) {
+          setMemViewAddr(addr & ~0xF);
+      }
   };
 
   const rows = Array.from({ length: ROWS }, (_, r) => {
@@ -22,12 +52,7 @@ export function MemoryPanel() {
     return { rowAddr, bytes };
   });
 
-  const NavBtn = ({ onClick, label }: { onClick: () => void; label: string }) => (
-    <button onClick={onClick}
-      className="px-2 py-0.5 text-[10px] bg-[var(--color-bg-hover)] border border-[var(--color-border-2)] text-[var(--color-txt-dim)] rounded-sm hover:text-[var(--color-neon)] hover:border-[var(--color-neon)]/50 cursor-pointer transition-colors">
-      {label}
-    </button>
-  );
+
 
   return (
     <div className="flex flex-col bg-[var(--color-bg-panel)] border border-[var(--color-border)] rounded-md overflow-hidden flex-1 min-h-0">

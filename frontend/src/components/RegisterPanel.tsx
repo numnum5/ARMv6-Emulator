@@ -24,7 +24,7 @@ const REG_NAME_ACCENT: Record<number, string> = {
 
 export function RegisterPanel() {
   const { cpuState } = useEmulatorStore();
-  const { regs, cpsr, cycles } = cpuState;
+  const { regs, cpsr, cycles, pc } = cpuState;
 
   const mode = (cpsr & 0x1F) === 0x10 ? 'USR' : (cpsr & 0x1F) === 0x13 ? 'SVC'
              : (cpsr & 0x1F) === 0x11 ? 'FIQ' : (cpsr & 0x1F) === 0x12 ? 'IRQ' : 'SYS';

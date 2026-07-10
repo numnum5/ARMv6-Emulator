@@ -72,6 +72,12 @@ export const REG_NAMES = ['R0','R1','R2','R3','R4','R5','R6','R7','R8','R9','R10
 
 const MEM_SIZE = 0x100000; // 1MB
 
+
+export interface Memory {
+  address : number;
+  value : number;
+}
+
 export class ARMv6CPU {
   regs: Uint32Array;
   cpsr: number;
@@ -194,6 +200,9 @@ export class ARMv6CPU {
   }
 
   write32(addr: number, val: number) {
+
+    console.log(addr, val);
+
     addr = addr & (MEM_SIZE - 1);
     val = val >>> 0;
     this.memory[addr] = val & 0xFF;

@@ -1,3 +1,4 @@
+import { useWebSocket } from '../emulator/ws';
 import { useEmulatorStore } from '../store/emulatorStore';
 import type { NavTab, StepMode } from '../store/emulatorStore';
 import { useCallback, useEffect, useState, useRef } from 'react';
@@ -23,82 +24,103 @@ export function NavBar() {
     activeTab,
     setActiveTab,
     runState,
-    step,
-    run,
-    pause,
-    stop,
-    reset,
     stepMode,
     setStepMode,
-    selectedProgram,
-    loadProgram,
     stepsPerSecond,
     setStepsPerSecond,
     cpuState,
-    loadedBinary,
   } = useEmulatorStore();
 
-  const [wsUrl, setWsUrl] = useState('ws://localhost:8080');
-  const [wsStatus, setWsStatus] = useState<WsStatus>('disconnected');
-  const [showUrlInput, setShowUrlInput] = useState(false);
+const ws = useWebSocket();
 
-  const wsRef = useRef<WebSocket | null>(null);
+ // const wsRef = useRef<WebSocket | null>(null);
 
   const isRunning = runState === 'running';
   const isHalted = cpuState.halted;
 
   // Incoming messages → push into store
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      const resp = JSON.parse(event.data);
+  // const handleMessage = useCallback((event: MessageEvent) => {
+  //   try {
 
-      if (resp.type === 'state') {
-        useEmulatorStore.getState().applyBackendState(resp.state);
-      }
-    } catch {
-      console.warn('WS: bad JSON', event.data);
+  //     console.log("Received data");
+  //     console.log(event.data);
+  //     const resp = JSON.parse(event.data);
+
+
+  //     console.log("resp: ")
+  //     console.log(resp);
+
+  //       useEmulatorStore.getState().applyBackendState(resp);
+  //     // }
+  //   } catch {
+  //     console.warn('WS: bad JSON', event.data);
+  //   }
+  // }, []);
+
+  // const connect = useCallback(() => {
+  //   wsRef.current?.close();
+
+  //   setWsStatus('connecting');
+
+  //   const ws = new WebSocket(wsUrl);
+  //   wsRef.current = ws;
+
+  //   ws.onopen = () => setWsStatus('connected');
+  //   ws.onclose = () => setWsStatus('disconnected');
+  //   ws.onerror = () => setWsStatus('error');
+  //   ws.onmessage = handleMessage;
+  // }, [wsUrl, handleMessage]);
+
+  // const disconnect = useCallback(() => {
+  //   wsRef.current?.close();
+  //   wsRef.current = null;
+  //   setWsStatus('disconnected');
+  // }, []);
+
+  // // Auto-connect on render + cleanup on unmount
+  // useEffect(() => {
+  //   connect();
+
+  //   return () => {
+  //     wsRef.current?.close();
+  //   };
+  // }, [connect]);
+
+  // const wsSend = (msg: string) =>
+  //   wsRef.current?.readyState === WebSocket.OPEN &&
+  //   wsRef.current.send(msg);
+
+  // ws when connected, local otherwise
+  const handleStep = () => {
+    if (ws?.readyState === WebSocket.OPEN)
+    {
+       ws?.send('step');
     }
-  }, []);
-
-  const connect = useCallback(() => {
-    wsRef.current?.close();
-
-    setWsStatus('connecting');
-
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => setWsStatus('connected');
-    ws.onclose = () => setWsStatus('disconnected');
-    ws.onerror = () => setWsStatus('error');
-    ws.onmessage = handleMessage;
-  }, [wsUrl, handleMessage]);
-
-  const disconnect = useCallback(() => {
-    wsRef.current?.close();
-    wsRef.current = null;
-    setWsStatus('disconnected');
-  }, []);
-
-  // Auto-connect on render + cleanup on unmount
-  useEffect(() => {
-    connect();
-
-    return () => {
-      wsRef.current?.close();
-    };
-  }, [connect]);
-
-  const wsSend = (msg: string) =>
-    wsRef.current?.readyState === WebSocket.OPEN &&
-    wsRef.current.send(msg);
-
-  // Action routing — ws when connected, local otherwise
-  const handleStep = () => wsSend('step');
-  const handleRun = () => wsSend('run');
-  const handlePause = () => wsSend('pause');
-  const handleStop = () => wsSend('stop');
-  const handleReset = () => wsSend('reset');
+  };
+  const handleRun = () => {
+    if (ws?.readyState === WebSocket.OPEN)
+    {
+       ws?.send('run');
+    }
+  };
+  const handlePause = () => {
+    if (ws?.readyState === WebSocket.OPEN)
+    {
+       ws?.send('puase');
+    }
+  };
+  const handleStop = () => {
+    if (ws?.readyState === WebSocket.OPEN)
+    {
+       ws?.send('stop');
+    }
+  };
+  const handleReset = () => {
+    if (ws?.readyState === WebSocket.OPEN)
+    {
+       ws?.send('reset');
+    }
+  };
 
   return (
     <header className="flex items-stretch h-13 bg-[var(--color-bg-panel)] border-b border-[var(--color-border)] shrink-0 relative">
@@ -280,21 +302,3 @@ function CtrlBtn({
   );
 }
 
-function mapBackendState(raw: any) {
-  return {
-    regs: new Uint32Array(raw.regs),
-    cpsr: raw.cpsr,
-    spsr: raw.spsr,
-    cycles: raw.cycles,
-    halted: raw.halted,
-    exception: raw.exception || null,
-    pipeline: {
-      fetch: raw.fetch ?? null,
-      decode: raw.decode ?? null,
-      execute: raw.execute ?? null,
-      fetchAddr: raw.fetchAddr ?? 0,
-      decodeAddr: raw.decodeAddr ?? 0,
-      executeAddr: raw.executeAddr ?? 0,
-    },
-  };
-}

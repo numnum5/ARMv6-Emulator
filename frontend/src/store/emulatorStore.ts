@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MicroStage } from '../emulator/cpu';
+import type { Memory, MicroStage } from '../emulator/cpu';
 import { ARMv6CPU, REG_NAMES, SAMPLE_PROGRAMS } from '../emulator/cpu';
 
 export type RunState = 'stopped' | 'running' | 'paused' | 'halted';
@@ -13,6 +13,7 @@ export interface CpuState {
   cpsr:    number;
   cycles:  number;          // total cycles / clock ticks
   halted:  boolean;
+  pc : number;
   exception: string | null;
   pipeline: {
     fetch:       number | null;
@@ -36,25 +37,38 @@ const DEFAULT_C_CODE = `// ARMv6 C example — compile with:
 // arm-none-eabi-gcc -march=armv6 -O1 -nostdlib -Ttext=0x0 -o out.elf main.c
 // Then upload the .elf via the Upload tab
 
-int fibonacci(int n) {
-    if (n <= 1) return n;
-    int a = 0, b = 1;
-    for (int i = 2; i <= n; i++) {
-        int c = a + b;
-        a = b;
-        b = c;
-    }
-    return b;
+#include <stdint.h>
+#include "semihosting.h"
+
+#define UART_DR  (*(volatile uint32_t*)0x40000000)
+#define SYST_CSR (*(volatile uint32_t*)0xE000E010)
+#define SYST_RVR (*(volatile uint32_t*)0xE000E014)
+#define SYST_CVR (*(volatile uint32_t*)0xE000E018)
+
+uint16_t add(uint16_t a)
+{
+    uart_putc('a');
+    uart_putc('a');
+    uart_putc('a');
+    uart_putc('b');
+    uart_putc('\n');
+    return a + 1;
 }
 
-void _start(void) {
-    int result = fibonacci(10);
-    (void)result;
-    __asm__("swi #0");
+int main(void)
+{
+  // SYST_RVR = 100;
+  //   SYST_CVR = 0;
+  //   SYST_CSR = 7;
+    // add(15);
+
+    asm volatile("svc #0");
+    uart_putc('a');
+    uart_putc('a');
+    while(1);
 }
 `;
 
-// ─── Local JS CPU (used when no backend connected) ────────────────────────────
 const localCPU = new ARMv6CPU();
 localCPU.loadProgram(new Uint8Array(SAMPLE_PROGRAMS['fibonacci'].bytes), 0);
 
@@ -64,6 +78,7 @@ function localCpuState(): CpuState {
     cpsr:      localCPU.cpsr,
     cycles:    localCPU.cycles,
     halted:    localCPU.halted,
+    pc : 0,
     exception: localCPU.exception,
     pipeline:  { ...localCPU.pipeline },
   };
@@ -91,14 +106,11 @@ interface EmulatorStore {
   loadedBinary:      LoadedBinary | null;
   selectedProgram:   string;
   stepsPerSecond:    number;
-
-  // Local JS CPU (for disassembly + memory view)
   cpu:               ARMv6CPU;
   localCPU:          ARMv6CPU;
-
-  // Local-only actions (used when backend not connected)
   step:           () => void;
   stepInstruction:() => void;
+  loadMemory: (memory: Memory[]) => void;
   stepCycle:      () => void;
   run:            () => void;
   pause:          () => void;
@@ -114,19 +126,14 @@ interface EmulatorStore {
   setStepsPerSecond:(v: number) => void;
   setLoadedBinary:  (b: LoadedBinary | null) => void;
   toggleBreakpoint: (addr: number) => void;
-
-  // WS status (set by Toolbar)
   wsStatus:      'disconnected' | 'connecting' | 'connected' | 'error';
   setWsStatus:   (s: 'disconnected' | 'connecting' | 'connected' | 'error') => void;
-
-  // Called by Toolbar when backend sends state
   applyBackendState:(raw: Record<string, unknown>) => void;
-
-  // Internal run interval
   _intervalId: ReturnType<typeof setInterval> | null;
 }
 
-// ─── Store ───────────────────────────────────────────────────────────────────
+
+
 export const useEmulatorStore = create<EmulatorStore>((set, get) => {
 
   function syncState(target: ARMv6CPU) {
@@ -154,13 +161,25 @@ export const useEmulatorStore = create<EmulatorStore>((set, get) => {
     wsStatus:          'disconnected' as const,
     setWsStatus:       (s) => set({ wsStatus: s }),
 
-    // ── Local step / run ────────────────────────────────────────────────────
-
     stepInstruction: () => {
       if (localCPU.halted) return;
       localCPU.step();
       syncState(localCPU);
     },
+
+    loadMemory: (memory: Memory[]) => {
+      for (const mem of memory) {
+           console.log(
+              "0x" + mem.address.toString(16).padStart(8, "0"),
+              "0x" + mem.value.toString(16).padStart(8, "0")
+          );
+          localCPU.write32(mem.address, mem.value);
+
+
+          // console.log(localCPU.read)
+      }
+    },
+
 
     stepCycle: () => {
       if (localCPU.halted) return;
@@ -239,13 +258,12 @@ export const useEmulatorStore = create<EmulatorStore>((set, get) => {
       });
     },
 
-    // ── Backend state injection (called by Toolbar on WS message) ─────────
     applyBackendState: (raw) => {
       const prev = get().cpuState;
+      console.log(raw.regs);
 
-      // Map C++ field names → our CpuState shape.
-      // C++ currently sends: { pc, cycle }
-      // Future fields commented out — uncomment as you add them to glaze:
+      raw.regs[15] = raw.pc;
+
       const next: CpuState = {
         regs:      (raw.regs as number[] | undefined) ?? prev.regs,
         cpsr:      (raw.cpsr as number  | undefined) ?? prev.cpsr,
@@ -253,6 +271,7 @@ export const useEmulatorStore = create<EmulatorStore>((set, get) => {
                 ?? (raw.cycles as number | undefined)
                 ?? prev.cycles,
         halted:    (raw.halted as boolean | undefined) ?? prev.halted,
+        pc :       (raw.cpsr as number  | undefined) ?? prev.cpsr,
         exception: (raw.exception as string | null | undefined) ?? prev.exception,
         pipeline: {
           fetch:       (raw.fetch       as number | null | undefined) ?? prev.pipeline.fetch,
@@ -274,6 +293,9 @@ export const useEmulatorStore = create<EmulatorStore>((set, get) => {
 
       const disassembly = buildDisassembly(localCPU, pc > 8 ? pc - 8 : 0);
 
+      console.log("REGS:::::::");
+
+      console.log(next.regs);
       set({
         cpuState: next,
         displayState: next,
